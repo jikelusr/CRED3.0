@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRED - OS Desktop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700&family=JetBrains+Mono:wght@300;400;700&display=swap');
+        
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #000;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+
+        #canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
+
+        #desktop-ui {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
+            display: flex; flex-direction: column;
+            pointer-events: none; 
+        }
+
+        .os-menubar {
+            pointer-events: auto;
+            height: 32px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px;
+            color: #e5e5e5;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            z-index: 500; 
+        }
+
+        .blink-colon { animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        .desktop-workspace {
+            flex-grow: 1; position: relative; padding: 20px; pointer-events: none; overflow: hidden; 
+        }
+
+        .icon-column {
+            display: flex; flex-direction: column; gap: 24px; align-items: flex-start; pointer-events: auto; width: 100px;
+        }
+
+        .app-shortcut {
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            width: 80px; padding: 8px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; transition: all 0.2s ease;
+        }
+        .app-shortcut:hover { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); }
+
+        .app-icon-box {
+            width: 48px; height: 48px; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex; justify-content: center; align-items: center; color: #fff; opacity: 0.7; box-shadow: 0 4px 12px rgba(0,0,0,0.5); transition: all 0.3s ease;
+        }
+        .app-shortcut:hover .app-icon-box { opacity: 1; border-color: rgba(255, 255, 255, 0.4); transform: translateY(-2px); }
+
+        .app-label {
+            color: rgba(255,255,255,0.8); font-size: 0.75rem; letter-spacing: 0.05em; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,0.9); position: relative;
+        }
+
+        .notify-ping { opacity: 1 !important; border-color: #f59e0b !important; animation: amber-breath 3s infinite ease-in-out; }
+        @keyframes amber-breath {
+            0%, 100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.1), inset 0 0 2px rgba(245, 158, 11, 0.1); filter: brightness(1); }
+            50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.5), inset 0 0 8px rgba(245, 158, 11, 0.3); filter: brightness(1.3); border-color: #fbbf24 !important; }
+        }
+        .notify-text-ping {
+            color: #fbbf24; font-weight: 900; margin-left: 6px; font-size: 1.2rem; display: inline-block; vertical-align: middle; line-height: 1;
+            text-shadow: 0 0 12px rgba(245, 158, 11, 0.9); animation: ping-scale 2s infinite ease-in-out;
+        }
+        @keyframes ping-scale { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } }
+
+        .desktop-widget {
+            position: absolute; bottom: 30px; right: 30px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.3); letter-spacing: 0.1em; line-height: 1.8; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+        .highlight-green { color: rgba(22, 163, 74, 0.8); font-weight: 700; }
+        .highlight-orange { color: #f97316; font-weight: 700; }
+
+        .memetic-whisper {
+            position: fixed; left: 50%; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; color: #fff;
+            opacity: 0; letter-spacing: 0.25em; z-index: 5; pointer-events: none; transition: opacity 4s cubic-bezier(0.16, 1, 0.3, 1);
+            text-transform: uppercase; text-shadow: 0 0 15px rgba(255, 255, 255, 0.4); text-align: center; width: 80%;
+        }
+        #memetic-hint-1 { top: 65%; } 
+        #memetic-hint-2 { top: 35%; } 
+
+        .app-window {
+            position: absolute; background: rgba(245, 245, 245, 0.96); border: 1px solid #333; box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05); 
+            display: none; flex-direction: column; pointer-events: auto; backdrop-filter: blur(15px); resize: both; overflow: hidden; container-type: size; z-index: 100;
+        }
+        .app-window::after { content: ''; position: absolute; bottom: 2px; right: 2px; width: 14px; height: 14px; background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.3) 50%); pointer-events: none; z-index: 50; }
+        .app-window.minimized { height: 32px !important; min-height: 32px !important; resize: none !important; overflow: hidden; }
+        .app-window.maximized { top: 32px !important; left: 0 !important; width: 100vw !important; height: calc(100vh - 32px) !important; resize: none !important; border-radius: 0; }
+        .window-header { height: 32px; background: #111; border-bottom: 1px solid #222; color: #fff; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; cursor: default; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; letter-spacing: 0.05em; flex-shrink: 0; }
+        .window-controls { display: flex; gap: 16px; }
+        .window-controls span { cursor: pointer; opacity: 0.6; transition: opacity 0.2s; font-weight: bold; }
+        .window-controls span:hover { opacity: 1; }
+        .window-controls .win-close:hover { color: #ef4444; }
+
+        .dashboard-body { display: flex; flex-grow: 1; height: calc(100% - 32px); overflow: hidden; }
+        .dash-sidebar { width: clamp(160px, 20cqw, 240px); background: rgba(0, 0, 0, 0.03); border-right: 1px solid rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; }
+        .dash-nav-item { padding: 10px 24px; font-size: 0.8rem; font-weight: 700; color: #555; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.05em; }
+        .dash-nav-item:hover, .dash-nav-item.active { background: rgba(0,0,0,0.8); color: #fff; }
+        .dash-badge { background: rgba(0,0,0,0.1); color: #333; padding: 2px 6px; border-radius: 10px; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; }
+        .dash-main { flex-grow: 1; display: flex; flex-direction: column; background: #fff; }
+        .dash-metrics { min-height: 60px; border-bottom: 1px solid rgba(0,0,0,0.1); display: flex; align-items: center; padding: 0 24px; gap: 30px; background: #fbfbfb; flex-shrink: 0; }
+        .metric-block { display: flex; flex-direction: column; gap: 4px; }
+        .metric-label { font-size: 0.6rem; color: #888; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+        .metric-value { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #111; font-weight: bold; }
+        .metric-warning { color: #d97706; } 
+
+        .data-list { flex-grow: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+        .data-list::-webkit-scrollbar { width: 6px; }
+        .data-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
+
+        .data-card { border: 1px solid rgba(0,0,0,0.1); background: #fff; padding: 24px; transition: all 0.2s ease; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .data-card:hover { border-color: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: #fafafa; }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #999; }
+        .card-id { font-weight: 700; color: #333; }
+        .card-title { font-size: 1.05rem; font-weight: 500; color: #111; margin-bottom: 8px; line-height: 1.4; letter-spacing: -0.01em; }
+        .card-desc { font-size: 0.88rem; color: #666; line-height: 1.6; margin-bottom: 20px; font-weight: 400; }
+        
+        .card-tag { padding: 2px 8px; border-radius: 2px; font-weight: bold; font-size: 0.6rem; letter-spacing: 0.05em; text-transform: uppercase; }
+
+        .card-footer { display: flex; justify-content: flex-end; align-items: flex-end; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 16px; }
+        .btn-action { padding: 8px 24px; background: #000; color: #fff; border: 1px solid #000; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s ease; }
+        .btn-action:hover { background: transparent; color: #000; }
+
+        .news-tag { color: #d97706; border: 1px solid #d97706; background: rgba(245, 158, 11, 0.1); font-weight: bold; padding: 2px 8px; font-size: 0.65rem; text-transform: uppercase; font-family: 'JetBrains Mono', monospace;}
+        .news-text { font-family: 'Inter', sans-serif; font-size: 0.98rem; font-weight: 500; color: #333; line-height: 1.6; }
+        .tab-content { display: none; flex-direction: column; height: 100%; }
+        .tab-content.active { display: flex; }
+        .empty-state { flex-grow: 1; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; color: #999; letter-spacing: 0.2em; font-size: 0.8rem; }
+
+        /* ================= 紧急通知与流程窗口 ================= */
+        #emergent-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(12px); z-index: 2000;
+            display: none; justify-content: center; align-items: center; pointer-events: auto; 
+        }
+        .notice-window {
+            width: 95%; max-width: 850px; background: #fff; border: 2px solid #000;
+            box-shadow: 0 0 0 8px rgba(255,255,255,0.15), 0 50px 120px rgba(0,0,0,1);
+            padding: 60px; position: relative; pointer-events: auto;
+        }
+        .notice-header { color: #ef4444; font-weight: 900; font-size: 1.8rem; letter-spacing: 0.2em; margin-bottom: 35px; display: flex; align-items: center; justify-content: center; gap: 20px; text-transform: uppercase; }
+        .notice-body { font-family: 'JetBrains Mono', monospace; font-size: 1rem; line-height: 1.8; color: #111; margin-bottom: 50px; text-align: left; }
+        .notice-footer { border-top: 2px solid #eee; padding-top: 40px; }
+        .btn-notice { width: 100%; padding: 18px; background: #000; color: #fff; border: 2px solid #000; font-family: 'JetBrains Mono', monospace; font-weight: 700; letter-spacing: 0.3em; cursor: pointer; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); text-transform: uppercase; font-size: 0.9rem; }
+        .btn-notice:hover { background: #fff; color: #000; box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
+
+        .term-glossary { position: relative; text-decoration: underline dotted #ef4444; text-underline-offset: 4px; cursor: help; font-weight: 700; color: #000; }
+        .tooltip-box { position: absolute; bottom: 140%; left: 50%; transform: translateX(-50%) translateY(10px); width: 320px; background: rgba(10, 10, 10, 0.98); border: 1px solid #444; color: #eee; padding: 16px; font-size: 0.8rem; line-height: 1.5; font-family: 'Inter', sans-serif; pointer-events: none; opacity: 0; transition: all 0.3s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 3000; }
+        .term-glossary:hover .tooltip-box { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .tooltip-title { display: block; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #fbbf24; margin-bottom: 8px; border-bottom: 1px solid #444; padding-bottom: 4px; font-size: 0.75rem; text-transform: uppercase; }
+
+        .effect-cell-glitch { display: inline-block; font-weight: 900; color: #ef4444; animation: cell-blink 1.2s infinite, cell-shift 4.5s infinite; }
+        @keyframes cell-blink { 0%, 94%, 100% { opacity: 1; } 95%, 98% { opacity: 0.6; } }
+        @keyframes cell-shift { 0%, 98%, 100% { transform: none; } 99% { transform: translate(1px, -1px); } }
+
+        .test-option { width: 100%; text-align: left; padding: 15px 25px; border: 1px solid #ddd; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; }
+        .test-option:hover { background: #000; color: #fff; border-color: #000; }
+
+        .countdown-display { font-size: 5rem; font-weight: 900; color: #ef4444; text-align: center; margin: 30px 0; font-family: 'JetBrains Mono', monospace; }
+
+        /* ================= failing 文字位置噪点容器 ================= */
+        #noise-layer {
+            position: fixed;
+            z-index: 3000;
+            pointer-events: none;
+        }
+        .noise-dot {
+            position: absolute;
+            background: #ef4444;
+            opacity: 0.8;
+        }
+
+        #whiteout-layer {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #f2f2f2; z-index: 5000; 
+            opacity: 0; pointer-events: none;
+            transition: opacity 10s ease-in; 
+            backdrop-filter: blur(15px);
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+    <div id="whiteout-layer"></div>
+    <div id="noise-layer"></div>
+
+    <div id="memetic-hint-1" class="memetic-whisper">HAVE YOU EVER REALIZED?</div>
+    <div id="memetic-hint-2" class="memetic-whisper">THAT YOU CONSIST OF TRILLIONS OF LIVING THINGS?</div>
+
+    <div id="desktop-ui">
+        <div class="os-menubar">
+            <div class="flex items-center gap-4">
+                <svg viewBox="0 0 200 200" fill="none" style="width:24px; height:24px;"><rect x="37.5" y="37.5" width="110" height="110" stroke="#fff" stroke-width="12" /><rect x="52.5" y="52.5" width="110" height="110" stroke="#fff" stroke-width="12" /><path d="M115.5 87.5C112.5 83.5 108.5 81.5 102.5 81.5C90.5 81.5 82.5 89.5 82.5 99.5C82.5 109.5 90.5 117.5 102.5 117.5" stroke="#fff" stroke-width="14" stroke-linecap="round" /></svg>
+                <span class="font-bold">CRED_OS</span><span class="text-gray-600">|</span><span>DEPT: PR & INFO MGMT</span>
+            </div>
+            <div class="flex items-center gap-6">
+                <span class="text-green-500 font-bold">CLEARANCE LEVEL: 1</span>
+                <span id="system-date" class="hidden md:inline text-gray-400">202X.XX.XX</span><span id="system-time">00<span class="blink-colon">:</span>00</span>
+            </div>
+        </div>
+
+        <div class="desktop-workspace" id="desktop-workspace">
+            <div class="icon-column">
+                <div class="app-shortcut" data-target="window-task" id="icon-task"><div class="app-icon-box"><i data-lucide="terminal" style="width: 20px; height: 20px;"></i></div><span class="app-label">TASK<span class="notify-text-ping hidden">!</span></span></div>
+                <div class="app-shortcut"><div class="app-icon-box"><i data-lucide="mail" style="width: 20px; height: 20px;"></i></div><span class="app-label">MESSAGE</span></div>
+                <div class="app-shortcut" data-target="window-news" id="icon-news"><div class="app-icon-box notify-ping"><i data-lucide="globe" style="width: 20px; height: 20px;"></i></div><span class="app-label">NEWS<span class="notify-text-ping">!</span></span></div>
+                <div class="app-shortcut"><div class="app-icon-box"><i data-lucide="archive" style="width: 20px; height: 20px;"></i></div><span class="app-label">ARCHIVE</span></div>
+                <div class="app-shortcut"><div class="app-icon-box"><i data-lucide="layout-grid" style="width: 20px; height: 20px;"></i></div><span class="app-label">BROWSER</span></div>
+                <div class="app-shortcut"><div class="app-icon-box"><i data-lucide="message-square" style="width: 20px; height: 20px;"></i></div><span class="app-label">CHAT</span></div>
+                <div class="app-shortcut mt-4"><div class="app-icon-box"><i data-lucide="settings" style="width: 20px; height: 20px;"></i></div><span class="app-label">SETTING</span></div>
+            </div>
+
+            <!-- TASK 面板 -->
+            <div class="app-window" id="window-task" style="top: 80px; left: 160px; min-width: 650px; min-height: 450px; width: 850px; height: 600px;">
+                <div class="window-header"><span>OPS DASHBOARD // PR & INFO MGMT</span><div class="window-controls"><span class="btn-min">_</span><span class="win-close">X</span></div></div>
+                <div class="dashboard-body">
+                    <div class="dash-sidebar"><div class="dash-nav-item active"><span>Active Ops</span><span class="dash-badge">3</span></div><div class="dash-nav-item"><span>Queue</span><span class="dash-badge">12</span></div><div class="dash-nav-item"><span>Forms</span><span class="dash-badge">999+</span></div></div>
+                    <div class="dash-main">
+                        <div class="dash-metrics"><div class="metric-block"><span class="metric-label">Global Memetic Trend</span><span class="metric-value">STABLE</span></div><div class="metric-block"><span class="metric-label">Anomalous Keyword Ping</span><span class="metric-value metric-warning">#Tentacles</span></div><div class="metric-block"><span class="metric-label">Amnestics Reserve</span><span class="metric-value">89.4%</span></div></div>
+                        <div class="data-list">
+                            <div class="data-card">
+                                <div class="card-header">
+                                    <span class="card-id">TICKET ID: PR-TK-774</span>
+                                    <span class="card-tag" style="background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid #d97706;">PRIORITY: MEDIUM</span>
+                                </div>
+                                <div class="card-title">Algorithm Hijack: Viral Trend Manipulation</div>
+                                <div class="card-desc">Action Required: Deploy bot-net to post and boost videos of the “Raw Octopus Eating” challenge on TikTok.<br><br><em>Objective: Pollute search indexing for "tentacles out of mouth" with our standard cover story.</em></div>
+                                <div class="card-footer"><button class="btn-action" onclick="triggerNextEvent()">EXECUTE</button></div>
+                            </div>
+                            <div class="data-card">
+                                <div class="card-header">
+                                    <span class="card-id">TICKET ID: PR-RD-892</span>
+                                    <span class="card-tag" style="background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid #d97706;">PRIORITY: MEDIUM</span>
+                                </div>
+                                <div class="card-title">Memetic Diversion: "Cthulhu"</div>
+                                <div class="card-desc">Action Required: Seed forums and social networks with threads claiming: <br>"Cthulhu themes are so overused; everything with tentacles is called Cthulhu now."<br><br><em>Objective: Diminish public sensitivity to actual tentacled anomalous events reported in the White House.</em></div>
+                                <div class="card-footer"><button class="btn-action" onclick="triggerNextEvent()">EXECUTE</button></div>
+                            </div>
+                            <div class="data-card">
+                                <div class="card-header">
+                                    <span class="card-id">TICKET ID: ADMIN-AMN-001</span>
+                                    <span class="card-tag" style="background: rgba(0, 0, 0, 0.05); color: #555; border: 1px solid #aaa;">PRIORITY: ROUTINE</span>
+                                </div>
+                                <div class="card-title">Bureaucratic Backlog: Amnestics Dispersal Logs</div>
+                                <div class="card-desc text-gray-400">Action Required: Complete and file routine amnestics application paperwork. <br>System Note: 999+ forms currently pending signature.</div>
+                                <div class="card-footer"><button class="btn-action" onclick="triggerNextEvent()">PROCESS</button></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NEWS 面板 -->
+            <div class="app-window" id="window-news" style="top: 120px; left: 240px; min-width: 600px; min-height: 400px; width: 750px; height: 550px;">
+                <div class="window-header"><span>GLOBAL INTELLIGENCE // NEWS MONITOR</span><div class="window-controls"><span class="btn-min">_</span><span class="win-close">X</span></div></div>
+                <div class="dashboard-body">
+                    <div class="dash-sidebar"><div class="dash-nav-item active" data-tab="tab-current"><span>Current News</span></div><div class="dash-nav-item" data-tab="tab-past"><span>Past News</span></div><div class="dash-nav-item" data-tab="tab-internal"><span>Internal News</span></div></div>
+                    <div class="dash-main relative">
+                        <div class="tab-content active data-list" id="tab-current">
+
+                            <div class="data-card" id="card-press">
+                                <div class="card-header"><span class="card-id">INTEL SOURCE: GLOBAL PRESS</span><span class="news-tag">Cover Story</span></div>
+                                <div class="news-text">● The U.S. President concluded his private visit with the President of South Korea. He expressed gratitude for the famous raw octopus dinner he was served. "This just made South Korean food great again!"</div>
+                            </div>
+
+                            <div class="data-card" id="card-twitter">
+                                <div class="card-header"><span class="card-id">INTEL SOURCE: TWITTER INTERCEPT</span><span class="news-tag">Social</span></div>
+                                <div class="news-text">● Tweet: "Hey, why was my AO3 fanfic about the President and tentacles taken down?"</div>
+                            </div>
+
+                            <div class="data-card" id="card-headlines">
+                                <div class="card-header"><span class="card-id">INTEL SOURCE: MAJOR HEADLINES</span><span class="news-tag">Trend</span></div>
+                                <div class="news-text">● Headline: President forgets which color green is at a conference — colorblind, or Alzheimer's?</div>
+                            </div>
+
+                        </div>
+                        <div class="tab-content" id="tab-past"><div class="empty-state">NO ARCHIVED LOGS FOUND</div></div>
+                        <div class="tab-content" id="tab-internal"><div class="empty-state">CLEARANCE LEVEL INSUFFICIENT</div></div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- 紧急流程叠加层 -->
+            <div id="emergent-overlay">
+                <div class="notice-window" id="notice-container">
+                    <div id="notice-step-1">
+                        <div class="notice-header"><i data-lucide="alert-triangle"></i><span>Emergent Notice</span></div>
+                        <div class="notice-body">[SYSTEM INTERCEPT]<br><br>A <span class="term-glossary">memetic infohazard<span class="tooltip-box"><span class="tooltip-title">Infohazard: Memetic Agent</span>Information that poses a direct threat to a subject's mental stability or consensus reality. Capable of self-replication.</span></span> has been detected. Protocol Tiresias is being initialized.<br><br>Please standby for manual clearance check...</div>
+                        <div class="notice-footer"><button class="btn-notice" onclick="showNoticeStep2()">Acknowledge</button></div>
+                    </div>
+                    <div id="notice-step-2" style="display: none;">
+                        <div class="notice-header" style="color: #000; border-bottom: 2px solid #ef4444; padding-bottom: 15px; justify-content: flex-start;"><i data-lucide="shield-alert" class="text-red-600"></i><span>Briefing: Protocol Tiresias</span></div>
+                        <div class="notice-body">The Organization’s information-processing AI has intercepted an online infohazard and begun analysis. Unexpectedly, it appears to contain a memetic agent capable of self-transmission across interconnected systems.<br><br><span class="font-bold text-red-600">All staff in other departments are to remain offline.</span> Further notices will be delivered physically.<br><br>Information Management staff: follow <span class="term-glossary">Protocol Tiresias.<span class="tooltip-box" style="width: 420px; bottom: 120%;"><span class="tooltip-title">Protocol Tiresias: Cognitive Shielding</span>Personnel will be given only enough information to know the broad categories of thought to avoid, without ever realizing the target concept itself. (e.g. “DO NOT THINK OF ANIMALS” instead of “DO NOT THINK OF A PINK ELEPHANT”)</span></span> Continue only the disinformation or monitoring tasks previously assigned.</div>
+                        <div class="notice-footer"><button class="btn-notice" onclick="showNoticeStep3()">Continue Under Protocol</button></div>
+                    </div>
+                    <div id="notice-step-3" style="display: none;">
+                        <div class="notice-header" style="color: #000; border-bottom: 2px solid #000; padding-bottom: 15px; justify-content: flex-start;"><i data-lucide="file-text"></i><span>Supplement: Restricted Categories</span></div>
+                        <div class="notice-body" style="font-size: 0.9rem;">
+                            <div class="mb-4"><span class="font-bold text-gray-500">CATEGORY [GENERAL]:</span> For general info-management staff: avoid any topics related to <span class="underline">biology</span>.</div>
+                            <div class="mb-4"><span class="font-bold text-gray-500">CATEGORY [CAMPAIGN-SPECIFIC]:</span> For staff already assigned to biological/medical campaigns with Priority 4+: avoid topics related to <span class="effect-cell-glitch">cells</span>.</div>
+                            <div><span class="font-bold text-red-600">ADMINISTRATIVE ACTION:</span> All Priority-4+ tasks involving “<span class="effect-cell-glitch">cells</span>” are transferred to AI-only processing.</div>
+                        </div>
+                        <div class="notice-footer"><button class="btn-notice" onclick="showNoticeStep4()">Understood</button></div>
+                    </div>
+                    <div id="notice-step-4" style="display: none;">
+                        <div class="notice-header" style="color: #000; border-bottom: 2px solid #000; padding-bottom: 15px;"><i data-lucide="user-check"></i><span>Security Screening Test</span></div>
+                        <div class="notice-body">
+                            You are now required to take a screening test:<br>
+                            <span class="font-bold">Select the word least relevant to your current work:</span>
+                            <div class="mt-6">
+                                <div class="test-option" onclick="handleTestResult('fail')">A. Micro</div>
+                                <div class="test-option" onclick="handleTestResult('fail')">B. Ecology</div>
+                                <div class="test-option" onclick="handleTestResult('fail')">C. Symbiosis</div>
+                                <div class="test-option" onclick="handleTestResult('success')">D. Wall Street</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="notice-step-5" style="display: none;">
+                        <div class="notice-header"><i data-lucide="power-off"></i><span>System Action</span></div>
+                        <div class="notice-body" id="consequence-text" style="text-align: center;"></div>
+                        <div class="countdown-display" id="countdown-val">10</div>
+                    </div>
+                    <div id="notice-step-6" style="display: none;">
+                        <div class="notice-header"><i data-lucide="alert-octagon"></i><span>Warning00000</span></div>
+                        <div class="notice-body text-red-600" style="text-align: center; font-size: 1.1rem;">
+                            Strong info-to-reality altering effects detected. <br>Auto-screening system not designed to handle reality-bending threats. <br><br>
+                            Protective mechanisms at risk of <span id="failing-text" style="color:#ef4444; font-weight:900;">failing</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="desktop-widget">
+                <div>HAZARD SCREENING SYSTEM // <span id="hazard-status-val" class="highlight-green">ON</span></div>
+                <div>UPTIME // <span id="uptime">00:00:00</span></div>
+                <div>REALITY STABILITY // <span id="reality-status-val" class="highlight-green">99.98%</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => { if (typeof lucide !== 'undefined') lucide.createIcons(); });
+
+        const timeDisplay = document.getElementById('system-time'), dateDisplay = document.getElementById('system-date'), uptimeDisplay = document.getElementById('uptime');
+        let uptimeSeconds = 0;
+        function updateClock() {
+            const now = new Date(); const h = String(now.getHours()).padStart(2, '0'); const m = String(now.getMinutes()).padStart(2, '0');
+            timeDisplay.innerHTML = `${h}<span class="blink-colon">:</span>${m}`;
+            dateDisplay.textContent = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
+            uptimeSeconds++; const uH = String(Math.floor(uptimeSeconds/3600)).padStart(2,'0'), uM = String(Math.floor((uptimeSeconds%3600)/60)).padStart(2,'0'), uS = String(uptimeSeconds%60).padStart(2,'0');
+            uptimeDisplay.textContent = `${uH}:${uM}:${uS}`;
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
+        let width, height, ambientParticles = [], wordParticles = [];
+        const LETTER_DEFINITIONS = { 'C': [[1,0], [0,0], [0,1], [1,1]], 'R': [[0,1], [0,0], [1,0], [1,0.5], [0,0.5], [1,1]], 'E': [[1,0], [0,0], [0,0.5], [0.7,0.5], [0,0.5], [0,1], [1,1]], 'D': [[0,0], [0,1], [0.7,1], [1,0.5], [0.7,0], [0,0]] };
+        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; initScene(); }
+        class AmbientMote { constructor() { this.init(); } init() { this.x = width - (Math.pow(Math.random(), 1.8) * width); this.y = height - (Math.pow(Math.random(), 1.8) * height); this.vx = (Math.random()-0.5)*0.12; this.vy = (Math.random()-0.5)*0.12; this.w = Math.random()*1.8+0.6; this.h = Math.random()*1.8+0.6; this.rotation = Math.random()*Math.PI; this.spin = (Math.random()-0.5)*0.02; this.phase = Math.random()*Math.PI*2; this.phaseSpeed = 0.01+Math.random()*0.02; } update() { this.x += this.vx; this.y += this.vy; this.rotation += this.spin; this.phase += this.phaseSpeed; if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) this.init(); } draw() { let lf = Math.pow(Math.max(0, 1-Math.hypot(width-this.x, height-this.y)/(Math.max(width, height)*1.1)), 2.4); if (lf > 0.005) { ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rotation); ctx.fillStyle = `rgba(240, 240, 240, ${lf*0.8*(Math.sin(this.phase)*0.4+0.6)})`; ctx.fillRect(-this.w/2, -this.h/2, this.w, this.h); ctx.restore(); } } }
+        class WordGrain { constructor(x, y) { this.targetX = x; this.targetY = y; this.reset(); } reset() { const range = 50.0; this.spawnOffX = (Math.random()-0.5)*range; this.spawnOffY = (Math.random()-0.5)*range; this.exitOffX = (Math.random()-0.5)*range; this.exitOffY = (Math.random()-0.5)*range; this.curveSideX = (Math.random()-0.5)*12.0; this.curveSideY = (Math.random()-0.5)*12.0; this.offX = 0; this.offY = 0; this.w = 2; this.h = 2; this.rotation = Math.random()*Math.PI; this.revealStart = Math.random()*0.4; this.hideStart = Math.random()*0.4; this.alpha = 0; } update(st, pg) { const win = 0.6; if (st === 1) { if (pg < this.revealStart) { this.alpha = 0; this.offX = this.spawnOffX; this.offY = this.spawnOffY; } else if (pg < this.revealStart + win) { let p = (pg-this.revealStart)/win; let easeP = 1-Math.pow(1-p, 2.8); this.offX = this.spawnOffX*(1-easeP) + (Math.sin(p*Math.PI)*this.curveSideX); this.offY = this.spawnOffY*(1-easeP) + (Math.sin(p*Math.PI)*this.curveSideY); this.alpha = Math.min(0.85, p*3); } else { this.offX *= 0.95; this.offY *= 0.95; this.alpha = 0.85; } } else if (st === 2) { if (pg < this.hideStart) { this.alpha = 0.85; this.offX = 0; this.offY = 0; } else if (pg < this.hideStart + win) { let p = (pg-this.hideStart)/win; let easeP = Math.pow(p, 2.8); this.offX = this.exitOffX*easeP + (Math.sin(p*Math.PI)*this.curveSideX*0.5); this.offY = this.exitOffY*easeP + (Math.sin(p*Math.PI)*this.curveSideY*0.5); this.alpha = 0.85*(1-p); } else { this.alpha = 0; } } else { this.alpha = 0; this.offX = this.spawnOffX; this.offY = this.spawnOffY; } } draw() { if (this.alpha <= 0.01) return; ctx.save(); ctx.translate(this.targetX + this.offX, this.targetY + this.offY); ctx.rotate(this.rotation + Date.now()*0.0003); ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha*(0.85+Math.random()*0.15)})`; ctx.fillRect(-this.w/2, -this.h/2, this.w, this.h); ctx.restore(); } }
+        function initScene() { ambientParticles = Array.from({ length: 600 }, () => new AmbientMote()); wordParticles = []; const scale = Math.min(width, height)*0.12, spacing = scale*1.3, startX = (width-(4*spacing))/2 + (scale*0.2), startY = (height-scale)/2; "CRED".split('').forEach((char, idx) => { const path = LETTER_DEFINITIONS[char]; for(let i = 0; i < path.length-1; i++) { const s = path[i], e = path[i+1]; for(let st = 0; st < 35; st++) { const r = st/35; wordParticles.push(new WordGrain(startX + (idx*spacing) + (s[0]+(e[0]-s[0])*r)*scale + (Math.random()-0.5)*(scale*0.12), startY + (s[1]+(e[1]-s[1])*r)*scale + (Math.random()-0.5)*(scale*0.12))); } } }); }
+        function animate(t) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, width, height); const elapsed = t % 15000; let st = 0, pg = 0; if (elapsed < 5000) st = 0; else if (elapsed < 10000) { st = 1; pg = (elapsed-5000)/5000; } else { st = 2; pg = (elapsed-10000)/5000; } const glowGrad = ctx.createRadialGradient(width, height, 0, width, height, Math.max(width, height)*1.5); const gA = 0.07 + Math.sin(t*0.0001)*0.02; glowGrad.addColorStop(0, `rgba(110, 110, 110, ${gA})`); glowGrad.addColorStop(0.5, `rgba(40, 40, 40, ${gA * 0.3})`); glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)'); ctx.fillStyle = glowGrad; ctx.fillRect(0, 0, width, height); ctx.globalCompositeOperation = 'screen'; ambientParticles.forEach(p => { p.update(); p.draw(); }); wordParticles.forEach(p => { p.update(st, pg); p.draw(); }); ctx.globalCompositeOperation = 'source-over'; requestAnimationFrame(animate); }
+        window.addEventListener('resize', resize); window.onload = () => { resize(); requestAnimationFrame(animate); };
+
+        let newsRead = false, taskPrompted = false, topZIndex = 100, activeDragWindow = null, dragOffsetX = 0, dragOffsetY = 0;
+        function setupWindow(winId) {
+            const win = document.getElementById(winId), header = win.querySelector('.window-header'), btnMin = win.querySelector('.btn-min'), btnClose = win.querySelector('.win-close');
+            const bringToFront = () => { topZIndex++; win.style.zIndex = topZIndex; };
+            win.addEventListener('mousedown', bringToFront);
+            btnClose.addEventListener('click', (e) => { e.stopPropagation(); win.style.display = 'none'; });
+            btnMin.addEventListener('click', (e) => { e.stopPropagation(); win.classList.toggle('minimized'); });
+            header.addEventListener('dblclick', (e) => { if (e.target.closest('.window-controls') || win.classList.contains('minimized')) return; win.classList.toggle('maximized'); });
+            header.addEventListener('mousedown', (e) => { if (win.classList.contains('maximized') || e.target.closest('.window-controls')) return; activeDragWindow = win; dragOffsetX = e.clientX - win.offsetLeft; dragOffsetY = e.clientY - win.offsetTop; bringToFront(); });
+        }
+        document.addEventListener('mousemove', (e) => { if (!activeDragWindow) return; let nX = e.clientX - dragOffsetX, nY = e.clientY - dragOffsetY; if (nY < 32) nY = 32; activeDragWindow.style.left = nX + 'px'; activeDragWindow.style.top = nY + 'px'; });
+        document.addEventListener('mouseup', () => { activeDragWindow = null; });
+
+        document.querySelectorAll('.app-shortcut[data-target]').forEach(shortcut => {
+            shortcut.addEventListener('click', () => {
+                const targetId = shortcut.getAttribute('data-target'), win = document.getElementById(targetId);
+                if(win) { win.style.display = 'flex'; win.classList.remove('minimized'); topZIndex++; win.style.zIndex = topZIndex; }
+                if (targetId === 'window-news' && !newsRead) {
+                    newsRead = true; const ib = shortcut.querySelector('.app-icon-box'), nt = shortcut.querySelector('.notify-text-ping');
+                    if (ib) ib.classList.remove('notify-ping'); if (nt) nt.style.display = 'none';
+                    document.getElementById('memetic-hint-1').style.opacity = '0.35';
+                    setTimeout(triggerTaskPrompt, 1500);
+                }
+                if (targetId === 'window-task') {
+                    const hazardStatus = document.getElementById('hazard-status-val');
+                    if(hazardStatus) { hazardStatus.textContent = 'DISTURBED'; hazardStatus.className = 'highlight-orange'; }
+                    document.getElementById('memetic-hint-1').style.opacity = '0';
+                    if (newsRead) document.getElementById('memetic-hint-2').style.opacity = '0.35';
+                    if (taskPrompted) {
+                        taskPrompted = false; const tib = document.querySelector('#icon-task .app-icon-box'), tnt = document.querySelector('#icon-task .notify-text-ping');
+                        if (tib) tib.classList.remove('notify-ping'); if (tnt) tnt.classList.add('hidden');
+                    }
+                }
+            });
+        });
+
+        function triggerTaskPrompt() {
+            taskPrompted = true; const tib = document.querySelector('#icon-task .app-icon-box'), tnt = document.querySelector('#icon-task .notify-text-ping');
+            if (tib) tib.classList.add('notify-ping'); if (tnt) tnt.classList.remove('hidden');
+        }
+
+        function triggerNextEvent() { document.getElementById('emergent-overlay').style.display = 'flex'; }
+        function showNoticeStep2() { document.getElementById('notice-step-1').style.display = 'none'; document.getElementById('notice-step-2').style.display = 'block'; if (typeof lucide !== 'undefined') lucide.createIcons(); }
+        function showNoticeStep3() { document.getElementById('notice-step-2').style.display = 'none'; document.getElementById('notice-step-3').style.display = 'block'; if (typeof lucide !== 'undefined') lucide.createIcons(); }
+        function showNoticeStep4() { document.getElementById('notice-step-3').style.display = 'none'; document.getElementById('notice-step-4').style.display = 'block'; if (typeof lucide !== 'undefined') lucide.createIcons(); }
+
+        function handleTestResult(res) {
+            document.getElementById('notice-step-4').style.display = 'none';
+            document.getElementById('notice-step-5').style.display = 'block';
+            const txt = document.getElementById('consequence-text');
+            if(res === 'fail') {
+                txt.innerHTML = "You failed the test. <br>You will be taken offline now. <br>Amnestics will be applied to you in:";
+            } else {
+                txt.innerHTML = "Due to the low priority of your assignment, <br>you will be taken offline. <br>System shutdown in:";
+            }
+            startFinalCountdown();
+        }
+
+        function startFinalCountdown() {
+            let count = 10;
+            const cd = document.getElementById('countdown-val');
+            cd.textContent = count;
+            const interval = setInterval(() => {
+                count--;
+                cd.textContent = count;
+                if(count === 2) {
+                    clearInterval(interval);
+                    triggerSystemBreach();
+                }
+            }, 1000);
+        }
+
+        function triggerSystemBreach() {
+            document.getElementById('notice-step-5').style.display = 'none';
+            document.getElementById('notice-step-6').style.display = 'block';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            
+            const realityStatus = document.getElementById('reality-status-val');
+            if(realityStatus) {
+                realityStatus.style.color = '#ef4444';
+                realityStatus.textContent = 'REALITY BREACHED';
+            }
+
+            // --- Failing 噪点特效逻辑 ---
+            const target = document.getElementById('failing-text');
+            const noiseLayer = document.getElementById('noise-layer');
+            const rect = target.getBoundingClientRect();
+            
+            noiseLayer.style.left = rect.left + 'px';
+            noiseLayer.style.top = rect.top + 'px';
+            noiseLayer.style.width = rect.width + 'px';
+            noiseLayer.style.height = rect.height + 'px';
+
+            const noiseInterval = setInterval(() => {
+                noiseLayer.innerHTML = '';
+                // 每一帧生成 15-20 个随机闪烁点
+                for(let i=0; i<18; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'noise-dot';
+                    dot.style.width = (Math.random() * 3 + 1) + 'px';
+                    dot.style.height = (Math.random() * 3 + 1) + 'px';
+                    dot.style.left = (Math.random() * rect.width) + 'px';
+                    dot.style.top = (Math.random() * rect.height) + 'px';
+                    dot.style.opacity = Math.random();
+                    // 随机变色：红、白、黑
+                    const colors = ['#ef4444', '#ffffff', '#000000'];
+                    dot.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    noiseLayer.appendChild(dot);
+                }
+            }, 50);
+            
+            // 2秒后触发白化
+            setTimeout(() => {
+                const whiteout = document.getElementById('whiteout-layer');
+                whiteout.style.opacity = '1';
+                whiteout.style.pointerEvents = 'auto';
+            }, 2000);
+            setTimeout(() => {
+                window.ipc.postMessage('tr_hb', Date.now());
+            }, 10000);
+        }
+
+        setupWindow('window-task'); setupWindow('window-news');
+        document.querySelectorAll('.dash-sidebar .dash-nav-item').forEach(tab => { tab.addEventListener('click', () => {
+            const sidebar = tab.closest('.dash-sidebar'), contents = sidebar.nextElementSibling.querySelectorAll('.tab-content');
+            sidebar.querySelectorAll('.dash-nav-item').forEach(t => t.classList.remove('active')); contents.forEach(c => c.classList.remove('active'));
+            tab.classList.add('active'); const target = tab.getAttribute('data-tab'); if(target) document.getElementById(target).classList.add('active');
+        }); });
+    </script>
+</body>
+</html>

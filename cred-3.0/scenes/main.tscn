@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://dh0mlhxy4li1x"]
+
+[ext_resource type="Script" uid="uid://6pb1jhqvig0u" path="res://script/main.gd" id="1_o5qli"]
+
+[node name="main" type="Control" unique_id=34752935]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_o5qli")
+
+[node name="WebView" type="WebView" parent="." unique_id=1497606940]
+url = "res://html/login.html"
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRED Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        .container {
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1f1f1f 0%, #000000 50%, #2d2d2d 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .fractal-bg {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+        }
+
+        .fractal-layer {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fractal-layer svg {
+            min-width: 120vmax;
+            min-height: 120vmax;
+        }
+
+        /* 背景动画层1：外层三角形旋转 */
+        .layer-1 { animation: fractalRotate1 40s linear infinite; }
+        /* 背景动画层2：六边形网格反向旋转 */
+        .layer-2 { animation: fractalRotate2 50s linear infinite reverse; }
+        /* 背景动画层3：同心圆呼吸缩放 */
+        .layer-3 { animation: fractalPulse 30s ease-in-out infinite; }
+        /* 背景动画层4：方形网格旋转 */
+        .layer-4 { animation: fractalRotate3 60s linear infinite; }
+        /* 背景动画层5：放射线反向旋转 */
+        .layer-5 { animation: fractalRotate4 70s linear infinite reverse; }
+
+        @keyframes fractalRotate1 {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fractalRotate2 {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(-360deg); }
+        }
+
+        @keyframes fractalRotate3 {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        @keyframes fractalRotate4 {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(-360deg); }
+        }
+
+        @keyframes fractalPulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.15);
+                opacity: 0.7;
+            }
+        }
+
+        /* 登录卡片 */
+        .login-card {
+            background: white;
+            padding: 3rem;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Logo 区域 */
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .logo-text {
+            font-size: 2.25rem;
+            font-weight: bold;
+            color: #000;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+        }
+
+        input {
+            width: 16rem;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #000;
+        }
+
+        button {
+            width: 16rem;
+            padding: 0.75rem 3rem;
+            background: #000;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #374151;
+            transform: scale(1.05);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: scale(0.95);
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
+            background: #111;
+        }
+    </style>
+</head>
+<body>
+    <!--
+        ============================================================
+        最外层容器：全屏居中布局
+        背景是分形几何动画（5层叠加的 SVG 图形循环旋转缩放）
+        ============================================================
+    -->
+    <div class="container">
+
+        <!-- ===== 分形背景动画层 ===== -->
+        <div class="fractal-bg">
+            <!-- 第1层：外层三角形，40秒顺时针旋转一圈 -->
+            <div class="fractal-layer layer-1">
+                <svg viewBox="-500 -500 2000 2000">
+                    <polygon points="500,-400 1400,1400 -400,1400" fill="none" stroke="white" stroke-width="1.5" opacity="0.15"/>
+                    <polygon points="500,-200 1200,1200 -200,1200" fill="none" stroke="white" stroke-width="1.2" opacity="0.2"/>
+                    <polygon points="50,350 500,-400 950,350" fill="none" stroke="white" stroke-width="1" opacity="0.15"/>
+                    <polygon points="-400,1400 50,350 500,1400" fill="none" stroke="white" stroke-width="1" opacity="0.15"/>
+                    <polygon points="500,1400 950,350 1400,1400" fill="none" stroke="white" stroke-width="1" opacity="0.15"/>
+                </svg>
+            </div>
+
+            <!-- 第2层：六边形蜂窝网格，50秒逆时针旋转一圈 -->
+            <div class="fractal-layer layer-2">
+                <svg viewBox="-500 -500 2000 2000">
+                    <polygon points="500,0 700,125 700,375 500,500 300,375 300,125" fill="none" stroke="white" stroke-width="1.5" opacity="0.25"/>
+                    <polygon points="500,-250 700,-125 700,125 500,250 300,125 300,-125" fill="none" stroke="white" stroke-width="1.2" opacity="0.18"/>
+                    <polygon points="850,0 1050,125 1050,375 850,500 650,375 650,125" fill="none" stroke="white" stroke-width="1.2" opacity="0.18"/>
+                    <polygon points="850,500 1050,625 1050,875 850,1000 650,875 650,625" fill="none" stroke="white" stroke-width="1.2" opacity="0.18"/>
+                    <polygon points="500,750 700,875 700,1125 500,1250 300,1125 300,875" fill="none" stroke="white" stroke-width="1.2" opacity="0.18"/>
+                    <polygon points="150,500 350,625 350,875 150,1000 -50,875 -50,625" fill="none" stroke="white" stroke-width="1.2" opacity="0.18"/>
+                    <polygon points="150,0 350,125 350,375 150,500 -50,375 -50,125" fill="none" stroke="white" stroke-width="1.2" opacity="0.18"/>
+                </svg>
+            </div>
+
+            <!-- 第3层：同心圆，30秒呼吸缩放一次 -->
+            <div class="fractal-layer layer-3">
+                <svg viewBox="-500 -500 2000 2000">
+                    <circle cx="500" cy="500" r="800" fill="none" stroke="white" stroke-width="1" opacity="0.1"/>
+                    <circle cx="500" cy="500" r="700" fill="none" stroke="white" stroke-width="1.2" opacity="0.15"/>
+                    <circle cx="500" cy="500" r="600" fill="none" stroke="white" stroke-width="1" opacity="0.12"/>
+                    <circle cx="500" cy="500" r="500" fill="none" stroke="white" stroke-width="1.5" opacity="0.18"/>
+                    <circle cx="500" cy="500" r="400" fill="none" stroke="white" stroke-width="1" opacity="0.1"/>
+                    <circle cx="500" cy="500" r="300" fill="none" stroke="white" stroke-width="1.2" opacity="0.15"/>
+                </svg>
+            </div>
+
+            <!-- 第4层：方形网格，60秒顺时针旋转一圈（带缩放） -->
+            <div class="fractal-layer layer-4">
+                <svg viewBox="-500 -500 2000 2000">
+                    <rect x="-100" y="-100" width="1200" height="1200" fill="none" stroke="white" stroke-width="1.5" opacity="0.15" transform="rotate(0 500 500)"/>
+                    <rect x="0" y="0" width="1000" height="1000" fill="none" stroke="white" stroke-width="1.2" opacity="0.18" transform="rotate(15 500 500)"/>
+                    <rect x="100" y="100" width="800" height="800" fill="none" stroke="white" stroke-width="1" opacity="0.2" transform="rotate(30 500 500)"/>
+                    <rect x="200" y="200" width="600" height="600" fill="none" stroke="white" stroke-width="1.2" opacity="0.15" transform="rotate(45 500 500)"/>
+                </svg>
+            </div>
+
+            <!-- 第5层：16条放射线，70秒逆时针旋转一圈 -->
+            <div class="fractal-layer layer-5">
+                <svg viewBox="-500 -500 2000 2000">
+                    <line x1="500" y1="500" x2="500" y2="-500" stroke="white" stroke-width="1" opacity="0.1"/>
+                    <line x1="500" y1="500" x2="1207" y2="-207" stroke="white" stroke-width="1" opacity="0.1"/>
+                    <line x1="500" y1="500" x2="1500" y2="500" stroke="white" stroke-width="1" opacity="0.1"/>
+                    <line x1="500" y1="500" x2="1207" y2="1207" stroke="white" stroke-width="1" opacity="0.1"/>
+                    <line x1="500" y1="500" x2="500" y2="1500" stroke="white" stroke-width="1" opacity="0.1"/>
+                    <line x1="500" y1="500" x2="-207" y2="1207" stroke="white" stroke-width="1" opacity="0.1"/>
+                    <line x1="500" y1="500" x2="-500" y2="500" stroke="white" stroke-width="1" opacity="0.1"/>
+                    <line x1="500" y1="500" x2="-207" y2="-207" stroke="white" stroke-width="1" opacity="0.1"/>
+                    <line x1="500" y1="500" x2="854" y2="-354" stroke="white" stroke-width="0.8" opacity="0.08"/>
+                    <line x1="500" y1="500" x2="1354" y2="146" stroke="white" stroke-width="0.8" opacity="0.08"/>
+                    <line x1="500" y1="500" x2="1354" y2="854" stroke="white" stroke-width="0.8" opacity="0.08"/>
+                    <line x1="500" y1="500" x2="854" y2="1354" stroke="white" stroke-width="0.8" opacity="0.08"/>
+                    <line x1="500" y1="500" x2="146" y2="1354" stroke="white" stroke-width="0.8" opacity="0.08"/>
+                    <line x1="500" y1="500" x2="-354" y2="854" stroke="white" stroke-width="0.8" opacity="0.08"/>
+                    <line x1="500" y1="500" x2="-354" y2="146" stroke="white" stroke-width="0.8" opacity="0.08"/>
+                    <line x1="500" y1="500" x2="146" y2="-354" stroke="white" stroke-width="0.8" opacity="0.08"/>
+                </svg>
+            </div>
+        </div>
+
+        <!--
+            ============================================================
+            登录卡片（白色浮层，z-index:10 盖在分形背景上面）
+            包含：Logo、用户名输入框、登录按钮
+            ============================================================
+        -->
+        <div class="login-card">
+            <!-- Logo 区域：CRED 文字 + 双矩形重叠图标 -->
+            <div class="logo-section">
+                <div class="logo-text">CRED</div>
+                <svg class="logo-icon" viewBox="0 0 40 40">
+                    <rect x="8" y="8" width="20" height="20" fill="none" stroke="black" stroke-width="2"/>
+                    <rect x="12" y="12" width="20" height="20" fill="none" stroke="black" stroke-width="2"/>
+                    <text x="20" y="24" font-size="14" font-weight="bold" fill="black" text-anchor="middle">C</text>
+                </svg>
+            </div>
+
+            <!--
+                用户名输入框
+                id="username"       — JS 用这个 id 获取输入值
+                oninput             — 每次输入触发 checkInput()，检测是否为空
+            -->
+            <input type="text" placeholder="Username" id="username" oninput="checkInput()">
+
+            <!--
+                登录按钮
+                id="login-btn"      — JS 用这个 id 控制 disabled 状态
+                disabled            — 默认禁用，输入框有内容才启用
+                onclick="sendLogin()" — 点击时把用户名发给 Godot
+                【注意】type 应改为 "button" 避免在 form 中触发页面刷新
+            -->
+            <button type="submit" id="login-btn" name="action" value="login" disabled onclick="sendLogin()">登录</button>
+        </div>
+
+        <!--
+            ============================================================
+            JS 逻辑区
+            ============================================================
+        -->
+        <script>
+        /**
+         * checkInput()
+         * 作用：检测用户名输入框是否有内容
+         *       空 → 登录按钮 disabled（灰色不可点）
+         *       非空 → 登录按钮 enabled（可点击）
+         * 触发：输入框 oninput 事件（每次按键/粘贴都会触发）
+         */
+        function checkInput() {
+            var username = document.getElementById("username").value.trim();  // 取输入值，去首尾空格
+            document.getElementById("login-btn").disabled = (username === ""); // 空字符串 → disabled=true
+        }
+
+        /**
+         * sendLogin()
+         * 作用：把用户名通过 IPC 发送给 Godot
+         * 格式：login:用户名
+         * Godot 端接收方式：
+         *   if message.begins_with("login:"):
+         *       Global.username = message.substr(6)
+         * 触发：登录按钮 onclick 事件
+         */
+        function sendLogin() {
+            var username = document.getElementById("username").value.trim();
+            window.ipc.postMessage("login:" + username);  // 发 IPC："login:玩家输入的用户名"
+        }
+        </script>
+    </div>
+</body>
+</html>

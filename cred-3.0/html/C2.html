@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRED - OS Desktop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;700&display=swap');
+        
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #000;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans SC', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            user-select: none;
+        }
+
+        #canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
+
+        #desktop-ui {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 10;
+            display: flex; flex-direction: column;
+            pointer-events: none; 
+        }
+
+        .os-menubar {
+            pointer-events: auto;
+            height: 32px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px;
+            color: #e5e5e5;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            z-index: 500; 
+        }
+
+        .blink-colon { animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        .desktop-workspace {
+            flex-grow: 1; position: relative; padding: 20px; pointer-events: none; overflow: hidden; 
+        }
+
+        .icon-column {
+            display: flex; flex-direction: column; gap: 24px; align-items: flex-start; pointer-events: auto; width: 100px;
+        }
+
+        .app-shortcut {
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            width: 80px; padding: 8px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; transition: all 0.2s ease;
+        }
+        .app-shortcut:hover { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); }
+
+        .app-icon-box {
+            width: 48px; height: 48px; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex; justify-content: center; align-items: center; color: #fff; opacity: 0.7; box-shadow: 0 4px 12px rgba(0,0,0,0.5); transition: all 0.3s ease;
+        }
+        .app-shortcut:hover .app-icon-box { opacity: 1; border-color: rgba(255, 255, 255, 0.4); transform: translateY(-2px); }
+
+        .app-label {
+            color: rgba(255,255,255,0.8); font-size: 0.75rem; letter-spacing: 0.05em; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,0.9); position: relative;
+            white-space: nowrap;
+        }
+
+        .notify-ping { opacity: 1 !important; border-color: #f59e0b !important; animation: amber-breath 3s infinite ease-in-out; }
+        @keyframes amber-breath {
+            0%, 100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.1), inset 0 0 2px rgba(245, 158, 11, 0.1); filter: brightness(1); }
+            50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.5), inset 0 0 8px rgba(245, 158, 11, 0.3); filter: brightness(1.3); border-color: #fbbf24 !important; }
+        }
+        
+        .notify-text-ping {
+            color: #fbbf24; font-weight: 900; font-size: 1.2rem; line-height: 1;
+            text-shadow: 0 0 12px rgba(245, 158, 11, 0.9); 
+            position: absolute; left: 100%; top: -3px; margin-left: 2px;
+            animation: ping-scale 2s infinite ease-in-out;
+        }
+        @keyframes ping-scale { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } }
+
+        .desktop-widget {
+            position: absolute; bottom: 30px; right: 30px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.3); letter-spacing: 0.1em; line-height: 1.8; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+        .highlight-green { color: rgba(22, 163, 74, 0.8); font-weight: 700; }
+
+        .app-window {
+            position: absolute; background: rgba(245, 245, 245, 0.96); border: 1px solid #333; box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05); 
+            flex-direction: column; pointer-events: auto; backdrop-filter: blur(15px); resize: both; overflow: hidden; container-type: size; z-index: 100; display: none;
+        }
+        .app-window::after { content: ''; position: absolute; bottom: 2px; right: 2px; width: 14px; height: 14px; background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.3) 50%); pointer-events: none; z-index: 50; }
+        .app-window.minimized { height: 32px !important; min-height: 32px !important; resize: none !important; overflow: hidden; }
+        .app-window.maximized { top: 32px !important; left: 0 !important; width: 100vw !important; height: calc(100vh - 32px) !important; resize: none !important; border-radius: 0; }
+        .window-header { height: 32px; background: #111; border-bottom: 1px solid #222; color: #fff; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; cursor: default; font-weight: 500; font-size: 0.75rem; letter-spacing: 0.05em; flex-shrink: 0; }
+        .window-controls { display: flex; gap: 16px; }
+        .window-controls span { cursor: pointer; opacity: 0.6; transition: opacity 0.2s; font-weight: bold; }
+        .window-controls span:hover { opacity: 1; }
+        .window-controls .win-close:hover { color: #ef4444; }
+
+        .dashboard-body { display: flex; flex-grow: 1; height: calc(100% - 32px); overflow: hidden; }
+        .dash-sidebar { width: clamp(160px, 20cqw, 240px); background: rgba(0, 0, 0, 0.03); border-right: 1px solid rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; padding: 20px 0; flex-shrink: 0; }
+        .dash-nav-item { padding: 10px 24px; font-size: 0.8rem; font-weight: 700; color: #555; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.05em; }
+        .dash-nav-item:hover, .dash-nav-item.active { background: rgba(0,0,0,0.8); color: #fff; }
+        .dash-badge { background: rgba(0,0,0,0.1); color: #333; padding: 2px 6px; border-radius: 10px; font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; }
+        .dash-main { flex-grow: 1; display: flex; flex-direction: column; background: #fff; }
+        .dash-metrics { min-height: 60px; border-bottom: 1px solid rgba(0,0,0,0.1); display: flex; align-items: center; padding: 0 24px; gap: 30px; background: #fbfbfb; flex-shrink: 0; }
+        .metric-block { display: flex; flex-direction: column; gap: 4px; }
+        .metric-label { font-size: 0.6rem; color: #888; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+        .metric-value { font-size: 0.85rem; color: #111; font-weight: bold; }
+        .metric-warning { color: #d97706; } 
+
+        .data-list { flex-grow: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+        .data-list::-webkit-scrollbar { width: 6px; }
+        .data-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
+
+        .data-card { border: 1px solid rgba(0,0,0,0.1); background: #fff; padding: 24px; transition: all 0.2s ease; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .data-card:hover { border-color: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: #fafafa; }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: #999; }
+        .card-id { font-weight: 700; color: #333; }
+        .card-title { font-size: 1.05rem; font-weight: 500; color: #111; margin-bottom: 8px; line-height: 1.4; letter-spacing: -0.01em; }
+        .card-desc { font-size: 0.88rem; color: #666; line-height: 1.6; margin-bottom: 20px; font-weight: 400; }
+        
+        .card-tag { padding: 2px 8px; border-radius: 2px; font-weight: bold; font-size: 0.6rem; letter-spacing: 0.05em; text-transform: uppercase; }
+
+        .card-footer { display: flex; justify-content: flex-end; align-items: flex-end; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 16px; }
+        .btn-action { padding: 8px 24px; background: #000; color: #fff; border: 1px solid #000; font-weight: 700; font-size: 0.75rem; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s ease; }
+        .btn-action:hover { background: transparent; color: #000; }
+
+        .news-tag { color: #d97706; border: 1px solid #d97706; background: rgba(245, 158, 11, 0.1); font-weight: bold; padding: 2px 8px; font-size: 0.65rem; text-transform: uppercase; }
+        .news-text { font-size: 0.98rem; font-weight: 500; color: #333; line-height: 1.6; }
+        .tab-content { display: none; flex-direction: column; height: 100%; }
+        .tab-content.active { display: flex; }
+        .empty-state { flex-grow: 1; display: flex; align-items: center; justify-content: center; color: #999; letter-spacing: 0.2em; font-size: 0.8rem; text-transform: uppercase; }
+
+        /* ================= 奇术雪貂插件 UI ================= */
+        #ferret-widget {
+            position: fixed;
+            top: 80px;
+            right: -150px; 
+            width: 80px;
+            height: 80px;
+            z-index: 2000;
+            transition: right 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+        }
+
+        #ferret-widget.active { right: 30px; pointer-events: auto; }
+
+        .ferret-bubble {
+            background: rgba(255, 255, 255, 0.95); color: #0f172a; padding: 15px 20px;
+            border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem; line-height: 1.5; width: max-content; max-width: 320px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: absolute; right: calc(100% + 15px); 
+            top: 0; opacity: 0; transform: translateY(10px); transition: all 0.3s ease; display: none;
+        }
+
+        .ferret-bubble.visible { display: block; opacity: 1; transform: translateY(0); }
+
+        .ferret-bubble::after {
+            content: ''; position: absolute; top: 40px; right: -6px; width: 10px; height: 10px;
+            background: rgba(255, 255, 255, 0.95); border-top: 1px solid #cbd5e1; border-right: 1px solid #cbd5e1;
+            transform: translateY(-50%) rotate(45deg);
+        }
+
+        .ferret-avatar {
+            width: 100%; height: 100%; background: #1e293b; border: 2px solid #38bdf8;
+            border-radius: 12px; display: flex; justify-content: center; align-items: center;
+            font-size: 2.5rem; cursor: pointer; box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 15px rgba(56, 189, 248, 0.3);
+            transition: transform 0.2s; flex-shrink: 0; animation: holo-pulse 3s infinite alternate;
+        }
+        
+        @keyframes holo-pulse {
+            from { box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 10px rgba(56, 189, 248, 0.2); }
+            to { box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 25px rgba(56, 189, 248, 0.6); }
+        }
+
+        .ferret-avatar:hover { transform: scale(1.05); }
+        .ferret-avatar:active { transform: scale(0.95); }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas"></canvas>
+
+    <div id="desktop-ui">
+        <div class="os-menubar">
+            <div class="flex items-center gap-4">
+                <svg viewBox="0 0 200 200" fill="none" style="width:24px; height:24px;">
+                    <rect x="37.5" y="37.5" width="110" height="110" stroke="#fff" stroke-width="12" />
+                    <rect x="52.5" y="52.5" width="110" height="110" stroke="#fff" stroke-width="12" />
+                    <path d="M115.5 87.5C112.5 83.5 108.5 81.5 102.5 81.5C90.5 81.5 82.5 89.5 82.5 99.5C82.5 109.5 90.5 117.5 102.5 117.5" stroke="#fff" stroke-width="14" stroke-linecap="round" />
+                </svg>
+                <span class="font-bold">CRED_OS</span><span class="text-gray-600">|</span><span>Dept: Public Relations & Information Management</span>
+            </div>
+            <div class="flex items-center gap-6">
+                <span class="text-green-500 font-bold">CLEARANCE LEVEL: 3</span>
+                <span id="system-date" class="hidden md:inline text-gray-400">202X.XX.XX</span><span id="system-time">00<span class="blink-colon">:</span>00</span>
+            </div>
+        </div>
+
+        <div class="desktop-workspace" id="desktop-workspace">
+            <div class="icon-column">
+                <div class="app-shortcut" data-target="window-task">
+                    <div class="app-icon-box"><i data-lucide="terminal" style="width: 20px; height: 20px;"></i></div>
+                    <span class="app-label">Tasks</span>
+                </div>
+                <div class="app-shortcut" data-target="window-mail">
+                    <div class="app-icon-box notify-ping"><i data-lucide="mail" style="width: 20px; height: 20px;"></i></div>
+                    <span class="app-label">Mail<span class="notify-text-ping">!</span></span>
+                </div>
+                <div class="app-shortcut" data-target="window-news">
+                    <div class="app-icon-box"><i data-lucide="globe" style="width: 20px; height: 20px;"></i></div>
+                    <span class="app-label">News</span>
+                </div>
+                <div class="app-shortcut" data-target="window-archive">
+                    <div class="app-icon-box notify-ping"><i data-lucide="archive" style="width: 20px; height: 20px;"></i></div>
+                    <span class="app-label">Archive<span class="notify-text-ping">!</span></span>
+                </div>
+                <div class="app-shortcut" data-target="window-browser" id="icon-browser">
+                    <div class="app-icon-box"><i data-lucide="layout-grid" style="width: 20px; height: 20px;"></i></div>
+                    <span class="app-label">Browser<span class="notify-text-ping" style="display: none;">!</span></span>
+                </div>
+                <div class="app-shortcut" data-target="window-chat">
+                    <div class="app-icon-box relative">
+                        <i data-lucide="message-square" style="width: 20px; height: 20px;"></i>
+                        <div class="absolute -bottom-1.5 -right-1.5 bg-[#111] border border-gray-500 rounded-full p-0.5">
+                            <i data-lucide="bell-off" class="w-3 h-3 text-gray-400"></i>
+                        </div>
+                    </div>
+                    <span class="app-label">Chat</span>
+                </div>
+                <div class="app-shortcut mt-4">
+                    <div class="app-icon-box"><i data-lucide="settings" style="width: 20px; height: 20px;"></i></div>
+                    <span class="app-label">Settings</span>
+                </div>
+            </div>
+
+            <!-- Task Panel -->
+            <div class="app-window" id="window-task" style="top: 80px; left: 160px; min-width: 650px; min-height: 450px; width: 850px; height: 600px;">
+                <div class="window-header"><span>Operations Console // Dept of PR & IM</span><div class="window-controls"><span class="btn-min">_</span><span class="win-close">X</span></div></div>
+                <div class="dashboard-body">
+                    <div class="dash-sidebar">
+                        <div class="dash-nav-item active"><span>Active Tasks</span><span class="dash-badge">0</span></div>
+                        <div class="dash-nav-item"><span>Pending Queue</span><span class="dash-badge">0</span></div>
+                        <div class="dash-nav-item"><span>Archived Forms</span><span class="dash-badge">999+</span></div>
+                    </div>
+                    <div class="dash-main">
+                        <div class="dash-metrics">
+                            <div class="metric-block"><span class="metric-label">Global Memetic Trend</span><span class="metric-value">Stable</span></div>
+                            <div class="metric-block"><span class="metric-label">Anomaly Keyword Tracking</span><span class="metric-value">Normal</span></div>
+                            <div class="metric-block"><span class="metric-label">Amnestic Reserves</span><span class="metric-value">89.4%</span></div>
+                        </div>
+                        <div class="data-list">
+                            <div class="empty-state">No active tasks assigned.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- News Panel -->
+            <div class="app-window" id="window-news" style="top: 120px; left: 240px; min-width: 600px; min-height: 400px; width: 750px; height: 550px;">
+                <div class="window-header"><span>Global Intelligence Center // News Monitoring</span><div class="window-controls"><span class="btn-min">_</span><span class="win-close">X</span></div></div>
+                <div class="dashboard-body">
+                    <div class="dash-sidebar">
+                        <div class="dash-nav-item active" data-tab="tab-current"><span>Current News</span></div>
+                        <div class="dash-nav-item" data-tab="tab-past"><span>Old News</span></div>
+                        <div class="dash-nav-item" data-tab="tab-internal"><span>Internal Briefings</span></div>
+                    </div>
+                    <div class="dash-main relative">
+                        <div class="tab-content active data-list" id="tab-current">
+                            <div class="empty-state">No new updates.</div>
+                        </div>
+                        <div class="tab-content data-list" id="tab-past">
+                            <div class="data-card">
+                                <div class="card-header"><span class="card-id">Source: Global Media</span><span class="news-tag">Cover Story</span></div>
+                                <div class="news-text">● The US President expressed gratitude for the "live octopus dinner" hosted for him, stating: "This makes Korean cuisine great again!"</div>
+                            </div>
+                            <div class="data-card">
+                                <div class="card-header"><span class="card-id">Source: Twitter Intercept</span><span class="news-tag">Social Media</span></div>
+                                <div class="news-text">● Tweet: "Hey, why was my fanfic about the President and tentacles deleted on AO3?"</div>
+                            </div>
+                            <div class="data-card">
+                                <div class="card-header"><span class="card-id">Source: Mainstream Headlines</span><span class="news-tag">Trending</span></div>
+                                <div class="news-text">● Headline: President forgets what color green is during press conference — Colorblind, or Alzheimer's?</div>
+                            </div>
+                        </div>
+                        <div class="tab-content" id="tab-internal">
+                            <div class="empty-state">Clearance Level Insufficient</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mail Panel -->
+            <div class="app-window" id="window-mail" style="top: 100px; left: 200px; min-width: 650px; min-height: 450px; width: 800px; height: 580px;">
+                <div class="window-header"><span>Encrypted Inbox // Mail</span><div class="window-controls"><span class="btn-min">_</span><span class="win-close">X</span></div></div>
+                <div class="dashboard-body">
+                    <div class="dash-sidebar">
+                        <div class="dash-nav-item active" data-tab="mail-inbox"><span>Inbox</span><span class="dash-badge">2</span></div>
+                        <div class="dash-nav-item" data-tab="mail-sent"><span>Sent</span></div>
+                        <div class="dash-nav-item" data-tab="mail-spam"><span>Spam/Anomalous</span></div>
+                    </div>
+                    <div class="dash-main relative">
+                        <div class="tab-content active data-list" id="mail-inbox">
+                            <div class="data-card">
+                                <div class="card-header">
+                                    <span class="card-id">From: System Admin</span>
+                                    <span class="text-xs text-gray-500">Today</span>
+                                </div>
+                                <div class="card-title">ICR Update & Promotion Notice</div>
+                                <div class="card-desc text-gray-700">
+                                    Index of Cognitohazard Resistance updated. Your ICR now exceeds the average in CRED by 4.1. Your promotion has been confirmed by the CRED supervising committee due to such excellence.
+                                </div>
+                            </div>
+                            <div class="data-card">
+                                <div class="card-header">
+                                    <div class="flex flex-col gap-1">
+                                        <span class="card-id">From: dptThau@CRED.org</span>
+                                        <span class="card-id text-gray-500 font-normal" style="text-transform: none;">To: dptinfo0115@CRED.org</span>
+                                    </div>
+                                    <span class="text-xs text-gray-500">Yesterday</span>
+                                </div>
+                                <div class="card-title">Introductory Training in Thaumaturgy</div>
+                                <div class="card-desc text-gray-700 space-y-3">
+                                    <p>Dear Player,</p>
+                                    <p>We have noticed that you have not yet completed your introductory training in thaumaturgy as a new recruit. Our regular monthly training session has been cancelled, as Dr. Franklin is currently on a field investigation.</p>
+                                    <p>To assist you in the meantime, we are providing a quick reference guide to the basic facts about thaumaturgy and reality-bending. Please see the attached file.</p>
+                                    <p>All the best,<br>Department of Practical Thaumaturgy</p>
+                                </div>
+                                <div class="card-footer justify-start border-t border-dashed border-gray-300 mt-4 pt-4">
+                                    <button id="btn-ferret-exe" class="flex items-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-100 transition-colors text-sm font-bold text-gray-800 cursor-pointer">
+                                        <i data-lucide="paperclip" class="w-4 h-4"></i> [Attachment: Ferret.exe]
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-content" id="mail-sent"><div class="empty-state">NO FILES</div></div>
+                        <div class="tab-content" id="mail-spam"><div class="empty-state">NO FILES</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Archive Panel -->
+            <div class="app-window" id="window-archive" style="top: 140px; left: 280px; min-width: 600px; min-height: 400px; width: 700px; height: 500px;">
+                <div class="window-header"><span>Secure Database // Archive</span><div class="window-controls"><span class="btn-min">_</span><span class="win-close">X</span></div></div>
+                <div class="dashboard-body">
+                    <div class="dash-sidebar">
+                        <div class="dash-nav-item active"><span>Classified</span></div>
+                        <div class="dash-nav-item"><span>Declassified</span></div>
+                    </div>
+                    <div class="dash-main">
+                        <div class="data-list">
+                            <div class="data-card">
+                                <div class="card-header">
+                                    <span class="card-id">FILE ID: IFHZ-A-CODE-0311</span>
+                                    <span class="card-tag" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444;">RESTRICTED</span>
+                                </div>
+                                <div class="card-title">On IFHZ-A-CODE-0311</div>
+                                <div class="card-desc text-gray-700">
+                                    Investigation on this item has been transferred to the department of anomalous arts. The memetic/infohazard nature of the item determines that mentioning of it should be avoided. Current work should be the removal of instances through AI.<br><br>
+                                    <strong>Note:</strong> humans think of what they are told to forget. Keep that in mind.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Browser Panel (BBS Forum) -->
+            <div class="app-window" id="window-browser" style="top: 120px; left: 150px; min-width: 750px; min-height: 550px; width: 900px; height: 680px;">
+                <div class="window-header"><span>Secure Browser // thewhitecouncil.net</span><div class="window-controls"><span class="btn-min">_</span><span class="win-close">X</span></div></div>
+                <div class="dashboard-body bg-[#e9eaed] flex-col">
+                    <div class="w-full bg-[#1c2841] text-white p-5 border-b-4 border-[#3b5998] flex justify-between items-end flex-shrink-0 shadow-sm">
+                        <div>
+                            <h1 class="text-3xl font-bold font-serif italic tracking-wide text-blue-50 drop-shadow-sm">The White Council</h1>
+                            <p class="text-xs text-blue-200 mt-1 font-sans">"Sapientia in Umbris" - The largest online gathering for modern practitioners.</p>
+                        </div>
+                        <div class="text-xs text-blue-300 font-sans flex gap-4">
+                            <span class="hover:text-white cursor-default">Welcome, Guest</span>
+                            <span class="hover:text-white cursor-pointer underline ferret-intercept" data-msg="No need. The IT department will provide you with an account later.">Log In</span>
+                            <span class="hover:text-white cursor-pointer underline ferret-intercept" data-msg="No need. The IT department will provide you with an account later.">Register</span>
+                        </div>
+                    </div>
+                    
+                    <div id="bbs-list-view" class="flex flex-col flex-grow overflow-hidden">
+                        <div class="bg-[#f5f6f7] px-6 py-2 text-xs text-gray-600 border-b border-gray-300 font-sans flex justify-between items-center shadow-sm flex-shrink-0">
+                            <div class="flex gap-2">
+                                <span class="text-blue-800 hover:underline cursor-pointer font-bold ferret-intercept" data-msg="Focus on this page first!">Index</span> &gt; 
+                                <span class="text-blue-800 hover:underline cursor-pointer ferret-intercept" data-msg="Focus on this page first!">General Discussion</span> &gt; 
+                                <span class="font-bold text-gray-800">Paranormal & Arcane</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <input type="text" placeholder="Search forum..." class="border border-gray-300 px-2 py-1 text-xs rounded-sm focus:outline-none">
+                                <button class="bg-[#3b5998] text-white px-3 py-1 rounded-sm hover:bg-[#2d4373] transition-colors ferret-intercept" data-msg="Focus on this page first!">Go</button>
+                            </div>
+                        </div>
+
+                        <div class="flex-grow overflow-y-auto p-4 md:p-6 bg-[#e9eaed] font-sans">
+                            <div class="flex justify-between items-center mb-3">
+                                <button class="bg-[#3b5998] text-white text-xs px-4 py-1.5 font-bold shadow-sm hover:bg-[#2d4373] transition-colors rounded-sm ferret-intercept" data-msg="Focus on this page first!">NEW TOPIC</button>
+                                <div class="flex items-center gap-1 text-xs">
+                                    <span class="mr-2 text-gray-600">Page 1 of 4,092</span>
+                                    <span class="px-2 py-1 bg-white border border-gray-300 text-gray-400 cursor-not-allowed rounded-sm">&lt;</span>
+                                    <span class="px-2 py-1 bg-[#3b5998] border border-[#3b5998] text-white font-bold rounded-sm">1</span>
+                                    <span class="px-2 py-1 bg-white border border-gray-300 text-blue-800 hover:bg-gray-50 cursor-pointer rounded-sm ferret-intercept" data-msg="Focus on this page first!">2</span>
+                                    <span class="px-2 py-1 bg-white border border-gray-300 text-blue-800 hover:bg-gray-50 cursor-pointer rounded-sm ferret-intercept" data-msg="Focus on this page first!">3</span>
+                                    <span class="px-1 text-gray-500">...</span>
+                                    <span class="px-2 py-1 bg-white border border-gray-300 text-blue-800 hover:bg-gray-50 cursor-pointer rounded-sm ferret-intercept" data-msg="Focus on this page first!">Last &raquo;</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-white border border-gray-300 shadow-sm rounded-sm overflow-hidden">
+                                <div class="bg-[#f0f2f5] border-b border-gray-300 p-2 text-xs font-bold text-gray-600 flex uppercase tracking-wider">
+                                    <div class="w-10"></div>
+                                    <div class="flex-grow pl-2">Topic / Topic Starter</div>
+                                    <div class="w-24 text-center hidden sm:block">Statistics</div>
+                                    <div class="w-40 pl-4 hidden md:block">Last Post</div>
+                                </div>
+                                
+                                <div class="flex items-center p-3 border-b border-gray-200 bg-[#fffae6] hover:bg-[#fff5cc] transition-colors ferret-intercept" data-msg="Do you seriously think these could contain anomalies?">
+                                    <div class="w-10 flex-shrink-0 text-center text-orange-500"><i data-lucide="pin" class="w-5 h-5 mx-auto fill-current"></i></div>
+                                    <div class="flex-grow min-w-0 pr-4">
+                                        <div class="font-serif text-[1.1rem] text-blue-900 font-bold hover:underline cursor-pointer truncate">
+                                            <span class="text-[0.65rem] bg-orange-500 text-white px-1.5 py-0.5 rounded-sm mr-1 align-middle font-sans uppercase">Pinned</span>
+                                            [Rules] General Discussion Guidelines - READ BEFORE POSTING
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1 font-sans">Started by <span class="font-bold text-gray-800 hover:underline cursor-pointer">Admin_Merlin</span>, Jan 1, 2012</div>
+                                    </div>
+                                    <div class="w-24 flex-shrink-0 text-center text-xs text-gray-500 hidden sm:block font-sans">
+                                        <div class="font-bold text-gray-700">Locked</div>
+                                        <div>1.2M Views</div>
+                                    </div>
+                                    <div class="w-40 flex-shrink-0 text-xs text-gray-500 hidden md:block pl-4 font-sans border-l border-orange-200">
+                                        <div class="truncate">Jan 1, 2012, 00:00 AM</div>
+                                        <div class="truncate">by <span class="font-bold text-gray-800">Admin_Merlin</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center p-3 border-b border-gray-200 bg-[#fffae6] hover:bg-[#fff5cc] transition-colors ferret-intercept" data-msg="Do you seriously think these could contain anomalies?">
+                                    <div class="w-10 flex-shrink-0 text-center text-orange-500"><i data-lucide="pin" class="w-5 h-5 mx-auto fill-current"></i></div>
+                                    <div class="flex-grow min-w-0 pr-4">
+                                        <div class="font-serif text-[1.1rem] text-blue-900 font-bold hover:underline cursor-pointer truncate">
+                                            <span class="text-[0.65rem] bg-orange-500 text-white px-1.5 py-0.5 rounded-sm mr-1 align-middle font-sans uppercase">Pinned</span>
+                                            [Megathread] Monthly Arcane Marketplace (Buy/Sell/Trade)
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1 font-sans">Started by <span class="font-bold text-gray-800 hover:underline cursor-pointer">MarketBot</span>, 1st of every month</div>
+                                    </div>
+                                    <div class="w-24 flex-shrink-0 text-center text-xs text-gray-500 hidden sm:block font-sans">
+                                        <div class="font-bold text-gray-700">8,492 Replies</div>
+                                        <div>45k Views</div>
+                                    </div>
+                                    <div class="w-40 flex-shrink-0 text-xs text-gray-500 hidden md:block pl-4 font-sans border-l border-orange-200">
+                                        <div class="truncate">Today, 08:14 AM</div>
+                                        <div class="truncate">by <span class="font-bold text-gray-800 hover:underline cursor-pointer">SilverCoin</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center p-3 border-b border-gray-200 hover:bg-gray-50 transition-colors ferret-intercept" data-msg="Oh, this one. It’s one of the oldest “magical world” jokes. Honestly, if people are still posting this, that’s almost anomalous in itself.">
+                                    <div class="w-10 flex-shrink-0 text-center text-blue-400"><i data-lucide="message-circle" class="w-5 h-5 mx-auto"></i></div>
+                                    <div class="flex-grow min-w-0 pr-4">
+                                        <div class="font-serif text-[1.1rem] text-[#3b5998] font-bold hover:underline cursor-pointer truncate">
+                                            <span class="text-[0.65rem] border border-gray-300 text-gray-500 px-1.5 py-0.5 rounded-sm mr-1 align-middle font-sans uppercase">Question</span>
+                                            How to Summon a Lemon
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1 font-sans">Started by <span class="font-bold text-gray-800 hover:underline cursor-pointer">CreepyPasta</span>, Today, 10:42 AM</div>
+                                    </div>
+                                    <div class="w-24 flex-shrink-0 text-center text-xs text-gray-500 hidden sm:block font-sans">
+                                        <div class="font-bold text-gray-700">42 Replies</div>
+                                        <div>340 Views</div>
+                                    </div>
+                                    <div class="w-40 flex-shrink-0 text-xs text-gray-500 hidden md:block pl-4 font-sans border-l border-gray-100">
+                                        <div class="truncate">Today, 11:15 AM</div>
+                                        <div class="truncate">by <span class="font-bold text-gray-800 hover:underline cursor-pointer">CitrusMage</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center p-3 border-b border-gray-200 hover:bg-gray-50 transition-colors ferret-intercept" data-msg="Just some guy hawking used props from a comic con. Move along.">
+                                    <div class="w-10 flex-shrink-0 text-center text-blue-400"><i data-lucide="message-circle" class="w-5 h-5 mx-auto"></i></div>
+                                    <div class="flex-grow min-w-0 pr-4">
+                                        <div class="font-serif text-[1.1rem] text-[#3b5998] font-bold hover:underline cursor-pointer truncate">
+                                            <span class="text-[0.65rem] border border-green-300 text-green-600 bg-green-50 px-1.5 py-0.5 rounded-sm mr-1 align-middle font-sans uppercase">WTS</span>
+                                            The Old Wand for sale
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1 font-sans">Started by <span class="font-bold text-gray-800 hover:underline cursor-pointer">ProfDandruff</span>, Yesterday, 09:20 PM</div>
+                                    </div>
+                                    <div class="w-24 flex-shrink-0 text-center text-xs text-gray-500 hidden sm:block font-sans">
+                                        <div class="font-bold text-gray-700">15 Replies</div>
+                                        <div>892 Views</div>
+                                    </div>
+                                    <div class="w-40 flex-shrink-0 text-xs text-gray-500 hidden md:block pl-4 font-sans border-l border-gray-100">
+                                        <div class="truncate">Today, 10:05 AM</div>
+                                        <div class="truncate">by <span class="font-bold text-gray-800 hover:underline cursor-pointer">WoodCarver</span></div>
+                                    </div>
+                                </div>
+
+                                <div id="thread-tarot" class="flex items-center p-3 border-b border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer">
+                                    <div class="w-10 flex-shrink-0 text-center text-gray-300"><i data-lucide="message-circle" class="w-5 h-5 mx-auto"></i></div>
+                                    <div class="flex-grow min-w-0 pr-4">
+                                        <div class="font-serif text-[1.1rem] text-[#3b5998] font-bold hover:underline cursor-pointer truncate">
+                                            <span class="text-[0.65rem] border border-gray-300 text-gray-500 px-1.5 py-0.5 rounded-sm mr-1 align-middle font-sans uppercase">Service</span>
+                                            Free Tarot Reading
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1 font-sans">Started by <span class="font-bold text-gray-800 hover:underline cursor-pointer">InkyEyes</span>, Yesterday, 04:15 PM</div>
+                                    </div>
+                                    <div class="w-24 flex-shrink-0 text-center text-xs text-gray-500 hidden sm:block font-sans">
+                                        <div class="font-bold text-gray-700">3 Replies</div>
+                                        <div>14 Views</div>
+                                    </div>
+                                    <div class="w-40 flex-shrink-0 text-xs text-gray-500 hidden md:block pl-4 font-sans border-l border-gray-100">
+                                        <div class="truncate">Yesterday, 04:15 PM</div>
+                                        <div class="truncate">by <span class="font-bold text-gray-800 hover:underline cursor-pointer">InkyEyes</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center p-3 border-b border-gray-200 hover:bg-gray-50 transition-colors ferret-intercept" data-msg="Probably a teenager who watched too much Game of Thrones. Let's keep looking.">
+                                    <div class="w-10 flex-shrink-0 text-center text-gray-300"><i data-lucide="message-circle" class="w-5 h-5 mx-auto"></i></div>
+                                    <div class="flex-grow min-w-0 pr-4">
+                                        <div class="font-serif text-[1.1rem] text-[#3b5998] font-bold hover:underline cursor-pointer truncate">
+                                            <span class="text-[0.65rem] border border-blue-300 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-sm mr-1 align-middle font-sans uppercase">WTB</span>
+                                            Looking for dragon scales
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1 font-sans">Started by <span class="font-bold text-gray-800 hover:underline cursor-pointer">VioletHound2006</span>, 2 Days Ago</div>
+                                    </div>
+                                    <div class="w-24 flex-shrink-0 text-center text-xs text-gray-500 hidden sm:block font-sans">
+                                        <div class="font-bold text-gray-700">7 Replies</div>
+                                        <div>124 Views</div>
+                                    </div>
+                                    <div class="w-40 flex-shrink-0 text-xs text-gray-500 hidden md:block pl-4 font-sans border-l border-gray-100">
+                                        <div class="truncate">Yesterday, 11:20 PM</div>
+                                        <div class="truncate">by <span class="font-bold text-gray-800 hover:underline cursor-pointer">ScaleMerchant</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center p-3 hover:bg-gray-50 transition-colors ferret-intercept" data-msg="Unless they dreamt of a flesh-eating fractal, it's just indigestion. Skip.">
+                                    <div class="w-10 flex-shrink-0 text-center text-blue-400"><i data-lucide="message-circle" class="w-5 h-5 mx-auto"></i></div>
+                                    <div class="flex-grow min-w-0 pr-4">
+                                        <div class="font-serif text-[1.1rem] text-[#3b5998] font-bold hover:underline cursor-pointer truncate">
+                                            <span class="text-[0.65rem] border border-gray-300 text-gray-500 px-1.5 py-0.5 rounded-sm mr-1 align-middle font-sans uppercase">Discussion</span>
+                                            Need help for dream interpretations
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1 font-sans">Started by <span class="font-bold text-gray-800 hover:underline cursor-pointer">DannyGreenshell</span>, 3 Days Ago</div>
+                                    </div>
+                                    <div class="w-24 flex-shrink-0 text-center text-xs text-gray-500 hidden sm:block font-sans">
+                                        <div class="font-bold text-gray-700">24 Replies</div>
+                                        <div>605 Views</div>
+                                    </div>
+                                    <div class="w-40 flex-shrink-0 text-xs text-gray-500 hidden md:block pl-4 font-sans border-l border-gray-100">
+                                        <div class="truncate">Yesterday, 08:30 PM</div>
+                                        <div class="truncate">by <span class="font-bold text-gray-800 hover:underline cursor-pointer">MindWalker</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-end items-center mt-4">
+                                <div class="flex items-center gap-1 text-xs">
+                                    <span class="px-2 py-1 bg-white border border-gray-300 text-gray-400 cursor-not-allowed rounded-sm">&lt;</span>
+                                    <span class="px-2 py-1 bg-[#3b5998] border border-[#3b5998] text-white font-bold rounded-sm">1</span>
+                                    <span class="px-2 py-1 bg-white border border-gray-300 text-blue-800 hover:bg-gray-50 cursor-pointer rounded-sm ferret-intercept" data-msg="Focus on this page first!">2</span>
+                                    <span class="px-2 py-1 bg-white border border-gray-300 text-blue-800 hover:bg-gray-50 cursor-pointer rounded-sm ferret-intercept" data-msg="Focus on this page first!">3</span>
+                                    <span class="px-1 text-gray-500">...</span>
+                                    <span class="px-2 py-1 bg-white border border-gray-300 text-blue-800 hover:bg-gray-50 cursor-pointer rounded-sm ferret-intercept" data-msg="Focus on this page first!">Last &raquo;</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="bbs-thread-view" class="flex-col flex-grow overflow-hidden" style="display: none;">
+                        <div class="bg-[#f5f6f7] px-6 py-2 text-xs text-gray-600 border-b border-gray-300 font-sans flex justify-between items-center shadow-sm flex-shrink-0">
+                            <div class="flex gap-2">
+                                <span class="text-blue-800 hover:underline cursor-pointer font-bold ferret-intercept" data-msg="Focus on this page first!">Index</span> &gt; 
+                                <span class="text-blue-800 hover:underline cursor-pointer ferret-intercept" data-msg="Focus on this page first!">General Discussion</span> &gt; 
+                                <span class="text-blue-800 hover:underline cursor-pointer ferret-intercept" data-msg="Focus on this page first!">Paranormal & Arcane</span> &gt;
+                                <span class="font-bold text-gray-800">Free Tarot Reading</span>
+                            </div>
+                        </div>
+
+                        <div class="flex-grow overflow-y-auto p-4 md:p-6 bg-[#e9eaed] font-sans">
+                            <div class="bg-white border border-gray-300 shadow-sm rounded-sm mb-4">
+                                <div class="bg-[#e1e6f2] border-b border-gray-300 p-3 flex justify-between items-center text-xs text-gray-700">
+                                    <div><span class="font-bold text-blue-900 text-sm">InkyEyes</span> <span class="text-gray-500 ml-2">Yesterday, 04:15 PM</span></div>
+                                    <div>Post #1</div>
+                                </div>
+                                <div class="p-6 text-sm text-gray-800 leading-relaxed">
+                                    <p class="mb-4">I’ll admit it: this is clickbait. This thread isn’t about Tarot.</p>
+                                    <p class="mb-4">But I can offer you something better than Tarot. A way of uncovering what you truly want to know.</p>
+                                    <p class="mb-2">Here’s what you do:</p>
+                                    <ul class="mb-4 space-y-1">
+                                        <li>● Find a bottle of ink.</li>
+                                        <li>● Into it, drip exactly three tears—taken from one eye only.</li>
+                                        <li>● Soak a feather in the mixture.</li>
+                                        <li>● Let the feather dry, and place it beneath your pillow.</li>
+                                    </ul>
+                                    <p>When you wake, you’ll understand.</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-white border border-gray-300 shadow-sm rounded-sm mb-2">
+                                <div class="bg-[#f0f2f5] border-b border-gray-200 p-2 flex justify-between items-center text-xs text-gray-700">
+                                    <div><span class="font-bold text-blue-800">OccultGenius</span> <span class="text-gray-500 ml-2">Yesterday, 05:22 PM</span></div>
+                                    <div>Post #2</div>
+                                </div>
+                                <div class="p-4 text-sm text-gray-800">lol. lame. I could crank out ten of these a day.</div>
+                            </div>
+
+                            <div class="bg-white border border-gray-300 shadow-sm rounded-sm mb-2">
+                                <div class="bg-[#f0f2f5] border-b border-gray-200 p-2 flex justify-between items-center text-xs text-gray-700">
+                                    <div><span class="font-bold text-blue-800">AnonGuest</span> <span class="text-gray-500 ml-2">Today, 02:14 AM</span></div>
+                                    <div>Post #3</div>
+                                </div>
+                                <div class="p-4 text-sm text-gray-800">…is this supposed to be happening? [Image upload failed]</div>
+                            </div>
+
+                            <div class="bg-white border border-gray-300 shadow-sm rounded-sm mb-2">
+                                <div class="bg-[#f0f2f5] border-b border-gray-200 p-2 flex justify-between items-center text-xs text-gray-700">
+                                    <div><span class="font-bold text-blue-800">AnonGuest</span> <span class="text-gray-500 ml-2">Today, 09:05 AM</span></div>
+                                    <div>Post #4</div>
+                                </div>
+                                <div class="p-4 text-sm text-gray-800">@InkyEyes please check your DMs if you see this.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Panel (已更新频道与吃瓜吐槽) -->
+            <div class="app-window" id="window-chat" style="display: none; top: 160px; left: 320px; min-width: 700px; min-height: 500px; width: 850px; height: 600px;">
+                <div class="window-header"><span>Internal Comms // CRED_Chat_Client</span><div class="window-controls"><span class="btn-min">_</span><span class="win-close">X</span></div></div>
+                <div class="dashboard-body flex h-full bg-[#f3f4f6]">
+                    <div class="w-14 bg-[#111827] flex flex-col items-center py-5 gap-6 text-gray-400 border-r border-gray-800 flex-shrink-0 z-10">
+                        <div class="w-9 h-9 bg-gray-600 rounded mb-2 flex justify-center items-center font-bold text-white shadow-sm border border-gray-500">ME</div>
+                        <i data-lucide="message-square" class="w-5 h-5 text-gray-100 cursor-pointer"></i>
+                        <i data-lucide="users" class="w-5 h-5 hover:text-gray-200 cursor-pointer transition-colors"></i>
+                        <i data-lucide="folder" class="w-5 h-5 hover:text-gray-200 cursor-pointer transition-colors"></i>
+                        <div class="mt-auto pb-2">
+                            <i data-lucide="menu" class="w-5 h-5 hover:text-gray-200 cursor-pointer transition-colors"></i>
+                        </div>
+                    </div>
+
+                    <div class="w-64 bg-[#e5e7eb] border-r border-gray-300 flex flex-col flex-shrink-0 z-0">
+                        <div class="p-3 border-b border-gray-300 flex items-center bg-[#e5e7eb]">
+                            <div class="relative w-full">
+                                <i data-lucide="search" class="absolute left-2 top-1.5 w-3.5 h-3.5 text-gray-400"></i>
+                                <input type="text" placeholder="Search..." class="w-full bg-[#d1d5db] border border-gray-300 text-xs pl-7 pr-2 py-1.5 rounded-sm focus:outline-none focus:bg-white focus:border-gray-400 transition-colors">
+                            </div>
+                        </div>
+                        <div class="flex-grow overflow-y-auto">
+                            <!-- 频道列表 -->
+                            <div class="chat-channel flex items-center p-3 bg-[#cbd5e1] cursor-pointer relative border-l-2 border-red-500" data-chat="chat-view-pr" data-title="# pr-internal">
+                                <div class="w-10 h-10 bg-indigo-800 rounded flex-shrink-0 flex items-center justify-center font-bold text-white text-xs tracking-wider">PR</div>
+                                <div class="ml-3 flex-grow overflow-hidden">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="text-[0.85rem] font-medium text-gray-900 truncate"># pr-internal</span>
+                                        <span class="text-[0.65rem] text-gray-600">10:55 AM</span>
+                                    </div>
+                                    <div class="text-[0.7rem] text-gray-600 truncate">Mark: Oh, sweet summer child...</div>
+                                </div>
+                                <div class="chat-red-dot absolute top-4 right-3 w-2 h-2 bg-red-500 rounded-full shadow-sm"></div>
+                            </div>
+
+                            <div class="chat-channel flex items-center p-3 hover:bg-[#d1d5db] cursor-pointer transition-colors" data-chat="chat-view-general" data-title="# general">
+                                <div class="w-10 h-10 bg-gray-500 rounded flex-shrink-0 flex items-center justify-center font-bold text-white text-xs tracking-wider">GEN</div>
+                                <div class="ml-3 flex-grow overflow-hidden">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="text-[0.85rem] font-medium text-gray-800 truncate"># general</span>
+                                        <span class="text-[0.65rem] text-gray-500">10:51 AM</span>
+                                    </div>
+                                    <div class="text-[0.7rem] text-gray-500 truncate">Dave: Ah, of course. My apologies...</div>
+                                </div>
+                            </div>
+
+                            <div class="chat-channel flex items-center p-3 hover:bg-[#d1d5db] cursor-pointer transition-colors" data-chat="chat-view-pra" data-title="# pr-announcements">
+                                <div class="w-10 h-10 bg-blue-800 rounded flex-shrink-0 flex items-center justify-center font-bold text-white text-xs tracking-wider">PRA</div>
+                                <div class="ml-3 flex-grow overflow-hidden">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="text-[0.85rem] font-medium text-gray-800 truncate"># pr-announcements</span>
+                                        <span class="text-[0.65rem] text-gray-500">Yesterday</span>
+                                    </div>
+                                    <div class="text-[0.7rem] text-gray-500 truncate">Weekly briefing document at...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-grow flex flex-col bg-[#f3f4f6]">
+                        <div class="h-14 border-b border-gray-300 flex justify-between items-center px-6 bg-[#f3f4f6] flex-shrink-0">
+                            <span id="chat-title" class="font-bold text-gray-800 text-lg"># pr-internal</span>
+                            <div class="flex gap-4 text-gray-500">
+                                <i data-lucide="more-horizontal" class="w-5 h-5 cursor-pointer hover:text-gray-800 transition-colors"></i>
+                            </div>
+                        </div>
+
+                        <!-- PR Internal Chat View -->
+                        <div id="chat-view-pr" class="chat-view flex-grow overflow-y-auto p-6 space-y-6 font-sans">
+                            <div class="text-center text-[0.65rem] text-gray-400 my-4 font-mono">TODAY 10:52 AM</div>
+                            
+                            <div class="flex gap-3">
+                                <div class="w-9 h-9 bg-[#991b1b] rounded flex-shrink-0 flex items-center justify-center font-bold text-white text-xs shadow-sm">PM</div>
+                                <div class="flex flex-col max-w-[80%]">
+                                    <span class="text-xs text-gray-500 mb-1 ml-1 font-medium">PR_Mark</span>
+                                    <div class="bg-white border border-gray-200 p-3 rounded-md text-[0.9rem] text-gray-800 shadow-sm relative leading-relaxed">
+                                        Is anyone else watching the general channel right now? Dave is losing it again.
+                                        <div class="absolute top-3 -left-1.5 w-3 h-3 bg-white border-l border-t border-gray-200 transform -rotate-45"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center text-[0.65rem] text-gray-400 my-4 font-mono">10:53 AM</div>
+
+                            <div class="flex gap-3">
+                                <div class="w-9 h-9 bg-[#0f766e] rounded flex-shrink-0 flex items-center justify-center font-bold text-white text-xs shadow-sm">PC</div>
+                                <div class="flex flex-col max-w-[80%]">
+                                    <span class="text-xs text-gray-500 mb-1 ml-1 font-medium">PR_Chloe</span>
+                                    <div class="bg-white border border-gray-200 p-3 rounded-md text-[0.9rem] text-gray-800 shadow-sm relative leading-relaxed">
+                                        LMAO yes. $45k for bird hunting. I almost want to leak this to the press just to see how we'd spin it.
+                                        <div class="absolute top-3 -left-1.5 w-3 h-3 bg-white border-l border-t border-gray-200 transform -rotate-45"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center text-[0.65rem] text-gray-400 my-4 font-mono">10:54 AM</div>
+
+                            <div class="flex gap-3">
+                                <div class="w-9 h-9 bg-[#475569] rounded flex-shrink-0 flex items-center justify-center font-bold text-white text-xs shadow-sm">PI</div>
+                                <div class="flex flex-col max-w-[80%]">
+                                    <span class="text-xs text-gray-500 mb-1 ml-1 font-medium">PR_Intern_04</span>
+                                    <div class="bg-white border border-gray-200 p-3 rounded-md text-[0.9rem] text-gray-800 shadow-sm relative leading-relaxed">
+                                        Wait, Thaumaturgy actually uses real albino crows? I thought that was just a metaphor for something.
+                                        <div class="absolute top-3 -left-1.5 w-3 h-3 bg-white border-l border-t border-gray-200 transform -rotate-45"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center text-[0.65rem] text-gray-400 my-4 font-mono">10:55 AM</div>
+
+                            <div class="flex gap-3">
+                                <div class="w-9 h-9 bg-[#991b1b] rounded flex-shrink-0 flex items-center justify-center font-bold text-white text-xs shadow-sm">PM</div>
+                                <div class="flex flex-col max-w-[80%]">
+                                    <span class="text-xs text-gray-500 mb-1 ml-1 font-medium">PR_Mark</span>
+                                    <div class="bg-white border border-gray-200 p-3 rounded-md text-[0.9rem] text-gray-800 shadow-sm relative leading-relaxed">
+                                        Oh, sweet summer child. You must be new here. Last month they requested 'the tears of a man who has never known sorrow'. We had to pull favors from HR to find someone that naive.
+                                        <div class="absolute top-3 -left-1.5 w-3 h-3 bg-white border-l border-t border-gray-200 transform -rotate-45"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- General Chat View -->
+                        <div id="chat-view-general" class="chat-view hidden flex-grow overflow-y-auto p-6 space-y-6 font-sans">
+                            <div class="text-center text-[0.65rem] text-gray-400 my-4 font-mono">TODAY 10:42 AM</div>
+                            
+                            <div class="flex gap-3">
+                                <div class="w-9 h-9 bg-[#1e40af] rounded flex-shrink-0 flex items-center justify-center font-bold text-white text-xs shadow-sm">LD</div>
+                                <div class="flex flex-col max-w-[80%]">
+                                    <span class="text-xs text-gray-500 mb-1 ml-1 font-medium">Logistics_Dave</span>
+                                    <div class="bg-white border border-gray-200 p-3 rounded-md text-[0.9rem] text-gray-800 shadow-sm relative leading-relaxed">
+                                        Just a quick, friendly clarification for our esteemed colleagues in the Dept of Practical Thaumaturgy. When you requisitioned "100 pure albino crow feathers", did you mean standard white dove feathers dyed by the interns, or are we expected to genetically engineer a new flock of crows by next Tuesday? Because procurement is taking a slight issue with the latter.
+                                        <div class="absolute top-3 -left-1.5 w-3 h-3 bg-white border-l border-t border-gray-200 transform -rotate-45"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center text-[0.65rem] text-gray-400 my-4 font-mono">10:47 AM</div>
+
+                            <div class="flex gap-3">
+                                <div class="w-9 h-9 bg-[#6b21a8] rounded flex-shrink-0 flex items-center justify-center font-bold text-white text-xs shadow-sm">TS</div>
+                                <div class="flex flex-col max-w-[80%]">
+                                    <span class="text-xs text-gray-500 mb-1 ml-1 font-medium">Thau_Sarah</span>
+                                    <div class="bg-white border border-gray-200 p-3 rounded-md text-[0.9rem] text-gray-800 shadow-sm relative leading-relaxed">
+                                        Dave, thank you so much for your unparalleled dedication to our operational success! As noted in the requisition form (Section 4b), the alchemical resonance requires genuine corvid essence. Doves are for street magicians. I'm sure Logistics can work their usual miracles! 😊
+                                        <div class="absolute top-3 -left-1.5 w-3 h-3 bg-white border-l border-t border-gray-200 transform -rotate-45"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="text-center text-[0.65rem] text-gray-400 my-4 font-mono">10:51 AM</div>
+
+                            <div class="flex gap-3">
+                                <div class="w-9 h-9 bg-[#1e40af] rounded flex-shrink-0 flex items-center justify-center font-bold text-white text-xs shadow-sm">LD</div>
+                                <div class="flex flex-col max-w-[80%]">
+                                    <span class="text-xs text-gray-500 mb-1 ml-1 font-medium">Logistics_Dave</span>
+                                    <div class="bg-white border border-gray-200 p-3 rounded-md text-[0.9rem] text-gray-800 shadow-sm relative leading-relaxed">
+                                        Ah, of course. My apologies for questioning the arcane necessities. I'll just go ahead and authorize the expedition to the Himalayas to source them. Hope the budget committee enjoys the $45,000 line item for "bird hunting".
+                                        <div class="absolute top-3 -left-1.5 w-3 h-3 bg-white border-l border-t border-gray-200 transform -rotate-45"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PR Announcements View -->
+                        <div id="chat-view-pra" class="chat-view hidden flex-grow overflow-y-auto p-6 space-y-6 font-sans">
+                            <div class="empty-state text-gray-400">NO NEW MESSAGES</div>
+                        </div>
+
+                        <div class="h-36 border-t border-gray-300 bg-white flex flex-col flex-shrink-0 relative">
+                            <div class="flex gap-5 px-5 py-2 text-gray-500 border-b border-gray-100">
+                                <i data-lucide="smile" class="w-4 h-4 cursor-not-allowed opacity-50"></i>
+                                <i data-lucide="folder" class="w-4 h-4 cursor-not-allowed opacity-50"></i>
+                                <i data-lucide="scissors" class="w-4 h-4 cursor-not-allowed opacity-50"></i>
+                                <i data-lucide="message-square" class="w-4 h-4 cursor-not-allowed opacity-50"></i>
+                            </div>
+                            <div class="flex-grow flex items-center justify-center p-4">
+                                <div class="w-full text-center text-xs text-gray-400 font-mono tracking-widest bg-gray-50 px-4 py-3 border border-gray-200 border-dashed rounded cursor-not-allowed">
+                                    POSTING IN THIS CHANNEL IS RESTRICTED
+                                </div>
+                            </div>
+                            <button class="absolute bottom-3 right-4 bg-gray-100 text-gray-400 border border-gray-200 px-6 py-1.5 rounded text-sm cursor-not-allowed font-medium tracking-wide">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="desktop-widget">
+                <div>Hazard Filtering System // <span class="highlight-green">ON</span></div>
+                <div>Uptime // <span id="uptime">00:00:00</span></div>
+                <div>Reality Stability // <span class="highlight-green">99.98%</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 奇术雪貂 UI -->
+    <div id="ferret-widget">
+        <div class="ferret-bubble" id="ferret-dialogue"></div>
+        <div class="ferret-avatar" id="ferret-btn" title="Click to interact">🦦</div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => { if (typeof lucide !== 'undefined') lucide.createIcons(); });
+
+        const timeDisplay = document.getElementById('system-time'), dateDisplay = document.getElementById('system-date'), uptimeDisplay = document.getElementById('uptime');
+        let uptimeSeconds = 0;
+        
+        function updateClock() {
+            const now = new Date(); 
+            const h = String(now.getHours()).padStart(2, '0'); 
+            const m = String(now.getMinutes()).padStart(2, '0');
+            timeDisplay.innerHTML = `${h}<span class="blink-colon">:</span>${m}`;
+            dateDisplay.textContent = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
+            
+            uptimeSeconds++; 
+            const uH = String(Math.floor(uptimeSeconds/3600)).padStart(2,'0');
+            const uM = String(Math.floor((uptimeSeconds%3600)/60)).padStart(2,'0');
+            const uS = String(uptimeSeconds%60).padStart(2,'0');
+            uptimeDisplay.textContent = `${uH}:${uM}:${uS}`;
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        const canvas = document.getElementById('canvas'), ctx = canvas.getContext('2d');
+        let width, height, lineParticles = [], ambientParticles = [];
+
+        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; initScene(); }
+
+        class AmbientMote { 
+            constructor() { this.init(); } 
+            init() { 
+                this.x = Math.random() * width; this.y = Math.random() * height; 
+                this.vx = (Math.random()-0.5)*0.3; this.vy = (Math.random()-0.5)*0.3; 
+                this.size = Math.random()*2 + 1; this.alpha = Math.random()*0.4 + 0.1;
+            } 
+            update() { 
+                this.x += this.vx; this.y += this.vy; 
+                if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) this.init(); 
+            } 
+            draw(ctx) { ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`; ctx.fillRect(this.x, this.y, this.size, this.size); } 
+        }
+
+        class LineParticle {
+            constructor(x, y, z) {
+                this.baseX = x; this.baseY = y; this.baseZ = z;
+                this.noiseX = Math.random() * 1000; this.noiseY = Math.random() * 1000; this.noiseZ = Math.random() * 1000;
+                this.baseSize = Math.random() * 1.5 + 1.0; this.phase = Math.random() * Math.PI * 2;
+            }
+            
+            draw(ctx, time, angleX, angleY) {
+                const wobble = 1.2;
+                const lx = this.baseX + Math.sin(time * 0.002 + this.noiseX) * wobble;
+                const ly = this.baseY + Math.cos(time * 0.002 + this.noiseY) * wobble;
+                const lz = this.baseZ + Math.sin(time * 0.002 + this.noiseZ) * wobble;
+
+                const cosY = Math.cos(angleY), sinY = Math.sin(angleY);
+                const x1 = lx * cosY - lz * sinY;
+                const z1 = lx * sinY + lz * cosY;
+
+                const cosX = Math.cos(angleX), sinX = Math.sin(angleX);
+                const y2 = ly * cosX - z1 * sinX;
+                const z2 = ly * sinX + z1 * cosX;
+
+                const fov = 1000; const zOff = 650; 
+                if (z2 + zOff < 0) return;
+
+                const scale = fov / (fov + z2 + zOff);
+                const sx = width / 2 + x1 * scale;
+                const sy = height / 2 + y2 * scale;
+
+                const depthAlpha = Math.min(1, Math.max(0.1, scale * 1.2 - 0.2));
+                const blinkAlpha = 0.6 + 0.4 * Math.sin(time * 0.005 + this.phase);
+                const alpha = depthAlpha * blinkAlpha;
+                
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                const s = this.baseSize * scale;
+                ctx.fillRect(sx - s/2, sy - s/2, s, s);
+            }
+        }
+
+        function addSegment(p1, p2, density) {
+            const dx = p2[0] - p1[0], dy = p2[1] - p1[1], dz = p2[2] - p1[2];
+            const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            const count = Math.max(2, Math.floor(dist * density));
+            for(let i = 0; i <= count; i++) lineParticles.push(new LineParticle(p1[0] + dx*(i/count), p1[1] + dy*(i/count), p1[2] + dz*(i/count)));
+        }
+        function addRect(pts, density) { addSegment(pts[0], pts[1], density); addSegment(pts[1], pts[2], density); addSegment(pts[2], pts[3], density); addSegment(pts[3], pts[0], density); }
+
+        function initScene() {
+            lineParticles = []; ambientParticles = Array.from({length: 120}, () => new AmbientMote());
+            const S = 3.8; const density = 0.55; 
+            const z1 = -20 * S; const z2 = 20 * S; const zC = 0;
+
+            const r1 = [[-62.5*S, -62.5*S, z1], [ 47.5*S, -62.5*S, z1], [ 47.5*S,  47.5*S, z1], [-62.5*S,  47.5*S, z1]];
+            const r2 = [[-47.5*S, -47.5*S, z2], [ 62.5*S, -47.5*S, z2], [ 62.5*S,  62.5*S, z2], [-47.5*S,  62.5*S, z2]];
+            addRect(r1, density); addRect(r2, density);
+
+            const rC = 18 * S; const cDensity = density * 1.5;
+            const steps = Math.floor((Math.PI * 1.5 * rC) * cDensity);
+            for(let i = 0; i <= steps; i++) {
+                const a = Math.PI * 0.25 + (Math.PI * 1.5) * (i / steps);
+                const cx = -5 * S + Math.cos(a) * rC; const cy = 0 + Math.sin(a) * rC;
+                lineParticles.push(new LineParticle(cx, cy, zC));
+            }
+        }
+
+        function animate(t) { 
+            ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, width, height); 
+            const glowGrad = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, Math.min(width, height) * 0.6); 
+            const gA = 0.05 + Math.sin(t * 0.0005) * 0.02; 
+            glowGrad.addColorStop(0, `rgba(150, 150, 150, ${gA})`); glowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)'); 
+            ctx.fillStyle = glowGrad; ctx.fillRect(0, 0, width, height); 
+
+            const angleY = t * 0.0005; const angleX = Math.sin(t * 0.0003) * 0.4;
+            ctx.globalCompositeOperation = 'screen'; 
+            lineParticles.forEach(p => p.draw(ctx, t, angleX, angleY)); 
+            ambientParticles.forEach(p => { p.update(); p.draw(ctx); }); 
+            ctx.globalCompositeOperation = 'source-over'; 
+            requestAnimationFrame(animate); 
+        }
+
+        window.addEventListener('resize', resize); window.onload = () => { resize(); requestAnimationFrame(animate); };
+
+        let topZIndex = 100, activeDragWindow = null, dragOffsetX = 0, dragOffsetY = 0;
+        function setupWindow(winId) {
+            const win = document.getElementById(winId);
+            const header = win.querySelector('.window-header');
+            const btnMin = win.querySelector('.btn-min');
+            const btnClose = win.querySelector('.win-close');
+            
+            const bringToFront = () => { topZIndex++; win.style.zIndex = topZIndex; };
+            win.addEventListener('mousedown', bringToFront);
+            btnClose.addEventListener('click', (e) => { e.stopPropagation(); win.style.display = 'none'; });
+            btnMin.addEventListener('click', (e) => { e.stopPropagation(); win.classList.toggle('minimized'); });
+            
+            header.addEventListener('dblclick', (e) => { 
+                if (e.target.closest('.window-controls') || win.classList.contains('minimized')) return; 
+                win.classList.toggle('maximized'); 
+            });
+            header.addEventListener('mousedown', (e) => { 
+                if (win.classList.contains('maximized') || e.target.closest('.window-controls')) return; 
+                activeDragWindow = win; dragOffsetX = e.clientX - win.offsetLeft; dragOffsetY = e.clientY - win.offsetTop; 
+                bringToFront(); 
+            });
+        }
+
+        document.addEventListener('mousemove', (e) => { 
+            if (!activeDragWindow) return; 
+            let nX = e.clientX - dragOffsetX, nY = e.clientY - dragOffsetY; 
+            if (nY < 32) nY = 32; activeDragWindow.style.left = nX + 'px'; activeDragWindow.style.top = nY + 'px'; 
+        });
+        document.addEventListener('mouseup', () => { activeDragWindow = null; });
+
+        let browserOpened = false;
+
+        // 【最纯净解耦：快捷方式点击只负责打开对应窗口，不拦截也不影响其他 DOM】
+        document.querySelectorAll('.app-shortcut[data-target]').forEach(shortcut => {
+            shortcut.addEventListener('click', () => {
+                const targetId = shortcut.getAttribute('data-target');
+                const win = document.getElementById(targetId);
+                
+                const iconBox = shortcut.querySelector('.app-icon-box');
+                const pingText = shortcut.querySelector('.notify-text-ping');
+                if(iconBox && iconBox.classList.contains('notify-ping')) iconBox.classList.remove('notify-ping');
+                if(pingText) pingText.style.display = 'none';
+
+                if(win) { 
+                    win.style.display = 'flex'; 
+                    win.classList.remove('minimized'); 
+                    topZIndex++; win.style.zIndex = topZIndex; 
+                }
+
+                // Ferret 专属剧情触发（仅与 Browser 绑定）
+                if (targetId === 'window-browser' && !browserOpened) {
+                    browserOpened = true;
+                    if (!ferretWidget.classList.contains('active')) ferretWidget.classList.add('active');
+                    activeFerretLines = ferretLinesBrowser;
+                    currentFerretLine = 0;
+                    showFerretLine();
+                }
+            });
+        });
+
+        setupWindow('window-task'); setupWindow('window-news'); setupWindow('window-mail'); 
+        setupWindow('window-archive'); setupWindow('window-browser'); setupWindow('window-chat');
+        
+        // Dashboard Tab 切换
+        document.querySelectorAll('.dash-sidebar .dash-nav-item').forEach(tab => { 
+            tab.addEventListener('click', () => {
+                const sidebar = tab.closest('.dash-sidebar');
+                const contents = sidebar.nextElementSibling.querySelectorAll('.tab-content');
+                sidebar.querySelectorAll('.dash-nav-item').forEach(t => t.classList.remove('active')); contents.forEach(c => c.classList.remove('active'));
+                tab.classList.add('active'); const target = tab.getAttribute('data-tab'); if(target) document.getElementById(target).classList.add('active');
+            }); 
+        });
+
+        // ==========================================
+        // Chat 内部频道独立切换逻辑
+        // ==========================================
+        document.querySelectorAll('.chat-channel').forEach(channel => {
+            channel.addEventListener('click', (e) => {
+                e.stopPropagation(); // 仅在 Chat 内部切换，防止误触
+                
+                document.querySelectorAll('.chat-channel').forEach(c => {
+                    c.className = 'chat-channel flex items-center p-3 hover:bg-[#d1d5db] cursor-pointer transition-colors';
+                });
+                
+                channel.className = 'chat-channel flex items-center p-3 bg-[#cbd5e1] cursor-pointer relative border-l-2 border-red-500';
+                
+                const redDot = channel.querySelector('.chat-red-dot');
+                if (redDot) redDot.style.display = 'none';
+
+                const targetId = channel.getAttribute('data-chat');
+                const title = channel.getAttribute('data-title');
+                
+                document.getElementById('chat-title').textContent = title;
+                
+                document.querySelectorAll('.chat-view').forEach(view => {
+                    view.classList.add('hidden');
+                });
+                
+                const activeView = document.getElementById(targetId);
+                if (activeView) activeView.classList.remove('hidden');
+            });
+        });
+
+        // ==========================================
+        // 奇术雪貂交互逻辑
+        // ==========================================
+        const ferretLinesIntro = [
+            "Greetings. This is Dr. Franklin.",
+            "Technically speaking, what you are interacting with is a procedural entity created by me through a thaumaturgical ritual.",
+            "It allows a fragment of my consciousness to manifest in the form of an animated ferret because they are cute.",
+            "Simply put, thaumaturgy is the scientific study of practices, concepts, and records traditionally associated with “magic.”",
+            "And no—before you ask—this is not a letter from Hogwarts.",
+            "And yes—you are a muggle.",
+            "Not everyone can perform thaumaturgy, unless the ritual itself has been constructed through prior thaumaturgical processes that allow even baseline humans to trigger it.",
+            "To assist your work, I have also added a list of online sites requiring attention to your work panel. These are where you need to monitor the folk awareness of thaumaturgy, and sometimes spread disinformation."
+        ];
+
+        const ferretLinesBrowser = [
+            "Welcome to the world of Harry Potter nerds and DnD fans. Most of what you’ll see here is fanfic, roleplay, and teenagers being themselves. Which is great news for both of us.",
+            "But as a muggle, you don’t have the instincts to spot when something real slips through the noise. So here’s the deal: look for suspicious threads, and I’ll double-check them."
+        ];
+
+        let activeFerretLines = ferretLinesIntro, currentFerretLine = 0, showingInterrupt = false; 
+        
+        const ferretWidget = document.getElementById('ferret-widget'), ferretBtn = document.getElementById('ferret-btn');
+        const ferretDialogue = document.getElementById('ferret-dialogue');
+        
+        // 独立的 Ferret.exe 触发逻辑
+        const btnFerretExe = document.getElementById('btn-ferret-exe');
+        if (btnFerretExe) {
+            btnFerretExe.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!ferretWidget.classList.contains('active')) {
+                    ferretWidget.classList.add('active'); activeFerretLines = ferretLinesIntro; currentFerretLine = 0; showFerretLine();
+                }
+            });
+        }
+
+        function triggerFerretInterrupt(text) {
+            if (!ferretWidget.classList.contains('active')) ferretWidget.classList.add('active');
+            ferretDialogue.classList.remove('visible');
+            setTimeout(() => { ferretDialogue.textContent = text; ferretDialogue.classList.add('visible'); showingInterrupt = true; }, 150);
+        }
+
+        document.querySelectorAll('.ferret-intercept').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                const msg = el.getAttribute('data-msg');
+                if (msg) triggerFerretInterrupt(msg);
+            });
+        });
+
+        let tarotClickedOnce = false;
+        document.getElementById('thread-tarot').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!tarotClickedOnce) {
+                triggerFerretInterrupt("…Hold on. Don’t scroll past this one. Click on it.");
+                tarotClickedOnce = true;
+                document.getElementById('thread-tarot').classList.add('bg-blue-100');
+            } else {
+                document.getElementById('bbs-list-view').style.display = 'none';
+                document.getElementById('bbs-thread-view').style.display = 'flex';
+                triggerFerretInterrupt("Shoot. This one's real.");
+            }
+        });
+
+        let isFerretDragging = false, hasFerretMoved = false, ferretStartX = 0, ferretStartY = 0, ferretInitLeft = 0, ferretInitTop = 0;
+
+        ferretBtn.addEventListener('mousedown', (e) => {
+            isFerretDragging = true; hasFerretMoved = false; ferretStartX = e.clientX; ferretStartY = e.clientY;
+            const rect = ferretWidget.getBoundingClientRect(); ferretInitLeft = rect.left; ferretInitTop = rect.top;
+            ferretWidget.style.right = 'auto'; ferretWidget.style.left = ferretInitLeft + 'px'; ferretWidget.style.top = ferretInitTop + 'px';
+            ferretWidget.style.transition = 'none'; e.preventDefault(); 
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isFerretDragging) return;
+            const dx = e.clientX - ferretStartX, dy = e.clientY - ferretStartY;
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasFerretMoved = true;
+            ferretWidget.style.left = (ferretInitLeft + dx) + 'px'; ferretWidget.style.top = (ferretInitTop + dy) + 'px';
+        });
+
+        document.addEventListener('mouseup', () => { isFerretDragging = false; });
+
+        ferretBtn.addEventListener('click', () => {
+            if (hasFerretMoved) return; 
+            if (showingInterrupt) { showingInterrupt = false; showFerretLine(); return; }
+
+            currentFerretLine++;
+            if (currentFerretLine < activeFerretLines.length) {
+                showFerretLine();
+                if (activeFerretLines === ferretLinesIntro && currentFerretLine === activeFerretLines.length - 1) {
+                    const browserIconBox = document.querySelector('#icon-browser .app-icon-box');
+                    const browserPingText = document.querySelector('#icon-browser .notify-text-ping');
+                    if (browserIconBox) browserIconBox.classList.add('notify-ping');
+                    if (browserPingText) browserPingText.style.display = 'inline-block';
+                }
+            } else {
+                ferretDialogue.classList.remove('visible');
+            }
+        });
+
+        function showFerretLine() {
+            ferretDialogue.classList.remove('visible');
+            setTimeout(() => {
+                if (currentFerretLine < activeFerretLines.length) {
+                    ferretDialogue.textContent = activeFerretLines[currentFerretLine];
+                    ferretDialogue.classList.add('visible');
+                }
+            }, 300);
+        }
+    </script>
+</body>
+</html>

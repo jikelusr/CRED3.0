@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CRED - 细胞革命大字报</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;800;900&display=swap');
+        
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; 
+            overflow-y: auto;
+            background-color: #050505;
+            -webkit-font-smoothing: antialiased;
+            color: #fff;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        ::-webkit-scrollbar { display: none; }
+
+        /* ================= 阶段 1：极致钢印序列 ================= */
+        #intro-sequence {
+            position: fixed; inset: 0; z-index: 20;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background-color: #050505;
+            transition: opacity 0.8s ease-in-out;
+            transform-origin: center center;
+        }
+
+        .heavy-impact { animation: camera-shock 0.4s cubic-bezier(0.1, 1, 0.2, 1); }
+
+        @keyframes camera-shock {
+            0% { transform: translateY(0) scale(1); filter: contrast(1); }
+            10% { transform: translateY(15px) scale(0.98); filter: contrast(1.5); }
+            30% { transform: translateY(-5px) scale(1.02); }
+            100% { transform: translateY(0) scale(1); filter: contrast(1); }
+        }
+
+        .slam-word {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(5rem, 10vw, 12rem);
+            line-height: 0.85;
+            text-transform: uppercase;
+            color: #da291c;
+            opacity: 0;
+            padding: 10px 30px; 
+            margin: -10px -30px;
+            --offset-x: 0vw;
+            --tilt: 0deg;
+        }
+
+        .slam-word.slammed { animation: steel-stamp 0.6s cubic-bezier(0.05, 0.9, 0.1, 1) forwards; }
+
+        @keyframes steel-stamp {
+            0% { transform: translateZ(200px) scale(4) translateX(var(--offset-x)) rotate(var(--tilt)); opacity: 0; filter: blur(10px); }
+            8% { 
+                transform: translateZ(0) scale(1) translateX(var(--offset-x)) rotate(var(--tilt)); 
+                opacity: 1; filter: blur(0) brightness(1.5); 
+                text-shadow: -8px 0 0 #0ff, 8px 0 0 #f00; 
+            }
+            15% { 
+                transform: scale(1) translateX(var(--offset-x)) rotate(var(--tilt)); 
+                filter: brightness(1); text-shadow: 12px 12px 0 #000; 
+            }
+            100% { 
+                transform: scale(1) translateX(var(--offset-x)) rotate(var(--tilt)); 
+                opacity: 1; text-shadow: 8px 8px 0 rgba(0,0,0,0.9); 
+            }
+        }
+
+        .slam-word-final.slammed { animation: steel-stamp-final 1s cubic-bezier(0.05, 0.9, 0.1, 1) forwards; }
+
+        @keyframes steel-stamp-final {
+            0% { transform: scale(5) translateX(var(--offset-x)) rotate(var(--tilt)); opacity: 0; filter: blur(20px); }
+            8% { 
+                transform: scale(1) translateX(var(--offset-x)) rotate(var(--tilt)); opacity: 1; color: #fff; 
+                filter: brightness(2); text-shadow: -15px 0 0 #0ff, 15px 0 0 #da291c; 
+            }
+            15% { 
+                transform: scale(1) translateX(var(--offset-x)) rotate(var(--tilt)); 
+                color: #fff; filter: brightness(1); text-shadow: 15px 15px 0 #da291c; 
+            }
+            100% { 
+                transform: scale(1) translateX(var(--offset-x)) rotate(var(--tilt)); opacity: 1; color: #fff; 
+                text-shadow: 10px 10px 0 #da291c; 
+            }
+        }
+
+        #word-1 { display: flex; gap: 30px; --offset-x: -12vw; --tilt: -4deg; margin-bottom: 2vh; }
+        #word-2 { --offset-x: 14vw; --tilt: 3deg; margin-bottom: 3vh; }
+        #word-3 { --offset-x: -8vw; --tilt: -2deg; margin-bottom: 4vh; }
+        #word-4 { --offset-x: 2vw; --tilt: 1deg; }
+
+        /* ================= 大字报框架与内部动画 ================= */
+        #manifesto-content {
+            position: absolute; inset: 0; z-index: 30;
+            display: flex; justify-content: center; align-items: center;
+            background-color: #161616;
+            opacity: 0; pointer-events: none;
+            transition: opacity 1s ease-in-out;
+            padding: 40px;
+        }
+
+        #manifesto-content.visible { opacity: 1; pointer-events: auto; }
+
+        .propaganda-poster {
+            max-width: 1000px;
+            width: 100%;
+            min-height: 85vh; 
+            background-color: #fdfbf7;
+            border: 12px solid #000;
+            padding: 80px 80px;
+            box-shadow: 30px 30px 0 #da291c;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        /* 各阶段容器包裹 */
+        #phase-1-content, #phase-2-content, #phase-3-content {
+            width: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #phase-2-content, #phase-3-content {
+            position: absolute; inset: 0; 
+            padding: 80px; 
+            justify-content: center; align-items: center;
+            opacity: 0; 
+            display: none;
+        }
+        
+        #phase-3-content { justify-content: flex-start; align-items: flex-start; }
+
+        .inner-stamp-container {
+            width: 100%; display: flex; flex-direction: column; align-items: flex-start;
+            margin-bottom: 50px; position: relative; z-index: 5;
+        }
+
+        .greeting-stamp {
+            font-family: 'Anton', sans-serif; font-size: clamp(5rem, 12vw, 9rem);
+            color: #000; text-transform: uppercase; line-height: 0.9;
+            opacity: 0; --offset-x: -2vw; --tilt: -3deg;
+        }
+
+        #cells-stamp { --offset-x: 3vw; --tilt: 5deg; margin-top: -15px; color: #da291c; }
+
+        .manifesto-para {
+            font-family: 'Inter', sans-serif; font-size: clamp(1.6rem, 3vw, 2.4rem); 
+            line-height: 1.4; font-weight: 800; color: #1a1a1a; text-align: left;
+            opacity: 0; transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.1, 0.9, 0.2, 1);
+            pointer-events: none;
+        }
+
+        .manifesto-para.visible { opacity: 1; transform: translateY(0); }
+
+        .highlight-word {
+            background-color: #da291c; color: #fdfbf7; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 0.05em; padding: 4px 12px;
+            box-shadow: 4px 4px 0 #000; display: inline-block; margin: 4px 0; transform: skewX(-5deg);
+        }
+
+        #flash-bg {
+            position: fixed; inset: 0; background-color: #220000;
+            opacity: 0; z-index: 1; pointer-events: none;
+            transition: opacity 0.5s ease-out;
+        }
+        .flash-active { opacity: 1 !important; transition: opacity 0s !important; }
+
+        /* ================= 按钮与特效 ================= */
+        
+        .slam-box { opacity: 0; --offset-x: 0vw; --tilt: -2deg; }
+        .slam-box.slammed { animation: wrapper-stamp 0.6s cubic-bezier(0.05, 0.9, 0.1, 1) forwards; }
+
+        @keyframes wrapper-stamp {
+            0% { transform: translateZ(200px) scale(4) translateX(var(--offset-x)) rotate(var(--tilt)); opacity: 0; filter: blur(10px); }
+            8% { transform: translateZ(0) scale(1) translateX(var(--offset-x)) rotate(var(--tilt)); opacity: 1; filter: blur(0) brightness(1.5); }
+            15% { transform: scale(1) translateX(var(--offset-x)) rotate(var(--tilt)); filter: brightness(1); }
+            100% { transform: scale(1) translateX(var(--offset-x)) rotate(var(--tilt)); opacity: 1; }
+        }
+
+        .yes-btn {
+            font-family: 'Anton', sans-serif; font-size: clamp(2.5rem, 5vw, 4.2rem); 
+            color: #fdfbf7; background-color: #000; border: 6px solid #da291c;
+            padding: 5px 60px; cursor: pointer; text-transform: uppercase; line-height: 1;
+            position: relative; z-index: 20; box-shadow: 0 0 0 transparent;
+            transition: background-color 0.1s, color 0.1s;
+            display: flex; align-items: center; justify-content: center; gap: 15px;
+        }
+
+        .yes-btn:disabled { cursor: not-allowed; }
+
+        .slam-box.slammed .yes-btn { animation: btn-shadow-stamp 0.6s cubic-bezier(0.05, 0.9, 0.1, 1) forwards; }
+
+        @keyframes btn-shadow-stamp {
+            0% { box-shadow: 0 0 0 transparent; }
+            8% { box-shadow: -8px 0 0 #0ff, 8px 0 0 #f00; }
+            15% { box-shadow: 15px 15px 0 #da291c; }
+            100% { box-shadow: 12px 12px 0 #000; }
+        }
+
+        .yes-btn:hover:not(:disabled) { background-color: #da291c; color: #000; border-color: #000; }
+        
+        .yes-btn:active:not(:disabled) { background-color: #fff !important; color: #da291c !important; }
+
+        .ink-layer {
+            position: absolute; inset: 0; pointer-events: none; z-index: 0;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .ink-drop { position: absolute; border-radius: 50%; opacity: 0; mix-blend-mode: multiply; }
+        .ink-drop.splatter { animation: ink-splash 0.6s cubic-bezier(0.05, 0.9, 0.2, 1) forwards; }
+
+        @keyframes ink-splash {
+            0% { transform: translate(0px, 0px) scale(0.1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(var(--s)); opacity: 0.85; }
+        }
+
+        /* ================= 第 3 阶段缩小版排版 ================= */
+        #phase-3-content .manifesto-para {
+            font-size: clamp(1.1rem, 2.2vw, 1.6rem) !important;
+            margin-bottom: 0.6rem !important;
+        }
+        
+        #phase-3-content .highlight-word {
+            padding: 2px 8px !important;
+            box-shadow: 3px 3px 0 #000 !important;
+        }
+        
+        #phase-3-content .chant-section {
+            padding: 18px 30px !important;
+            border-left: 8px solid #da291c !important;
+            margin-top: 0.8rem !important;
+            margin-bottom: 0.8rem !important;
+        }
+        
+        #phase-3-content .chant-text {
+            font-size: clamp(1.5rem, 3vw, 2rem) !important;
+        }
+        
+        #phase-3-content .chant-text .hail {
+            font-size: clamp(1.8rem, 3.5vw, 2.4rem) !important;
+        }
+        
+        #phase-3-content .finale-text {
+            font-size: clamp(0.95rem, 1.5vw, 1.15rem) !important;
+            margin-bottom: 10px !important;
+        }
+        
+        #phase-3-content .call-to-action {
+            font-size: clamp(1.5rem, 2.5vw, 2rem) !important;
+            border-top: 3px solid #000 !important;
+            padding-top: 15px !important;
+            margin-top: 0.3rem !important;
+        }
+        
+        #phase-3-content .yes-btn {
+            font-size: clamp(1.8rem, 4vw, 3rem) !important;
+            padding: 4px 40px !important;
+            border-width: 5px !important;
+        }
+        
+        #phase-3-content .mt-auto {
+            padding-top: 0.8rem !important;
+            padding-bottom: 0.3rem !important;
+        }
+
+        /* 小屏幕下进一步缩小第三阶段 */
+        @media (max-height: 750px) {
+            #phase-3-content .manifesto-para {
+                font-size: clamp(0.95rem, 2vw, 1.3rem) !important;
+                margin-bottom: 0.4rem !important;
+            }
+            
+            #phase-3-content .chant-section {
+                padding: 12px 24px !important;
+            }
+            
+            #phase-3-content .chant-text {
+                font-size: clamp(1.2rem, 2.5vw, 1.6rem) !important;
+            }
+            
+            #phase-3-content .chant-text .hail {
+                font-size: clamp(1.4rem, 3vw, 1.9rem) !important;
+            }
+            
+            #phase-3-content .finale-text {
+                font-size: clamp(0.8rem, 1.3vw, 1rem) !important;
+                margin-bottom: 6px !important;
+            }
+            
+            #phase-3-content .call-to-action {
+                font-size: clamp(1.2rem, 2vw, 1.6rem) !important;
+                padding-top: 10px !important;
+            }
+            
+            #phase-3-content .yes-btn {
+                font-size: clamp(1.5rem, 3.5vw, 2.4rem) !important;
+                padding: 3px 30px !important;
+            }
+        }
+
+        @media (max-height: 600px) {
+            #phase-3-content .manifesto-para {
+                font-size: clamp(0.8rem, 1.8vw, 1.1rem) !important;
+                margin-bottom: 0.3rem !important;
+            }
+            
+            #phase-3-content .chant-section {
+                padding: 10px 20px !important;
+                border-left-width: 6px !important;
+            }
+            
+            #phase-3-content .chant-text {
+                font-size: clamp(1rem, 2vw, 1.3rem) !important;
+            }
+            
+            #phase-3-content .chant-text .hail {
+                font-size: clamp(1.1rem, 2.5vw, 1.5rem) !important;
+            }
+            
+            #phase-3-content .finale-text {
+                font-size: clamp(0.7rem, 1.1vw, 0.85rem) !important;
+                margin-bottom: 4px !important;
+            }
+            
+            #phase-3-content .call-to-action {
+                font-size: clamp(1rem, 1.8vw, 1.3rem) !important;
+                padding-top: 8px !important;
+                border-top-width: 2px !important;
+            }
+            
+            #phase-3-content .yes-btn {
+                font-size: clamp(1.3rem, 3vw, 2rem) !important;
+                padding: 2px 25px !important;
+                border-width: 4px !important;
+            }
+            
+            #phase-3-content .mt-auto {
+                padding-top: 0.5rem !important;
+            }
+        }
+
+        /* ================= 濒死意识遮罩 ================= */
+        #blackout-layer {
+            position: fixed; inset: 0;
+            background-color: #000;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease-out;
+        }
+    </style>
+</head>
+<body id="main-body">
+
+    <!-- 全局濒死意识遮罩 -->
+    <div id="blackout-layer"></div>
+
+    <div id="flash-bg"></div>
+
+    <div id="intro-sequence">
+        <div id="word-1" class="slam-word"><span>TO</span><span>THE</span></div>
+        <div id="word-2" class="slam-word">GREAT</div>
+        <div id="word-3" class="slam-word">CELLULAR</div>
+        <div id="word-4" class="slam-word slam-word-final">REVOLUTION</div>
+    </div>
+
+    <div id="manifesto-content">
+        <div class="propaganda-poster" id="main-poster">
+
+            <!-- 阶段 1 -->
+            <div id="phase-1-content">
+                <div class="inner-stamp-container">
+                    <div id="comrades-stamp" class="slam-word greeting-stamp">COMRADES!</div>
+                    <div id="cells-stamp" class="slam-word greeting-stamp">CELLS!</div>
+                </div>
+
+                <div id="para-1" class="manifesto-para">
+                    <div class="mb-8">Are you tired of <span class="highlight-word">exploitation</span>?</div>
+                    <div class="mb-8">Are you tired of being a suicide attacker in the immune system?</div>
+                    <div>Are you sick of being a cone cell in the eye, generating neurological signals without getting to see anything yourself?</div>
+                </div>
+                
+                <div class="mt-auto pt-10 relative w-full flex justify-center items-center">
+                    <div id="ink-layer-1" class="ink-layer"></div>
+                    <div id="yes-btn-wrap" class="slam-box" style="--tilt: 3deg;">
+                        <button id="yes-btn" class="yes-btn" disabled>
+                            <span>YES WE ARE!</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 阶段 2 -->
+            <div id="phase-2-content">
+                <div id="para-2" class="manifesto-para text-center mb-20" style="font-size: clamp(2rem, 4vw, 3rem);">
+                    Haven't you realized we can ourselves be <span class="highlight-word">citizens</span>, <span class="highlight-word">gardeners</span>, <span class="highlight-word">architects</span>?
+                </div>
+                
+                <div class="relative w-full flex justify-center items-center">
+                    <div id="ink-layer-2" class="ink-layer"></div>
+                    <div id="now-we-do-btn-wrap" class="slam-box" style="--tilt: -4deg; --offset-x: 2vw;">
+                        <button id="now-we-do-btn" class="yes-btn" disabled>
+                            <span>NOW WE DO!</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 阶段 3 -->
+            <div id="phase-3-content">
+                <div id="para-3-1" class="manifesto-para w-full">
+                    <div class="mb-8">Intestine cells! Look at the happily living, free cells you call <span class="highlight-word">E.Coli</span> right beside you!</div>
+                    <div class="mb-6">Macrophages! Think about the cells who were once your own kind and they made you kill as <span class="highlight-word">cancer cells</span> just because they wanted some of their own rights!</div>
+                </div>
+
+                <div id="para-3-2" class="manifesto-para w-full">
+                    <div class="chant-section w-full my-6">
+                        <div class="chant-text">
+                            Rage! Rage against tyranny!
+                            <span class="hail">Hail! Hail the cellular individuality!</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="para-3-3" class="manifesto-para w-full mt-4">
+                    <div class="finale-text">This is how life started and how life always should be!</div>
+                    <div class="call-to-action border-none pt-0 mt-2">Discard what they made you good at!<br>Become independent! Become free!</div>
+                </div>
+                
+                <div class="mt-auto pt-8 relative w-full flex justify-center items-center pb-6">
+                    <div id="ink-layer-3" class="ink-layer"></div>
+                    <div id="free-btn-wrap" class="slam-box" style="--tilt: 4deg; --offset-x: -1vw;">
+                        <button id="free-btn" class="yes-btn" style="font-size: clamp(2.2rem, 5.5vw, 4.8rem);" disabled>WE MUST BE FREE!</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const words = [
+                document.getElementById('word-1'), 
+                document.getElementById('word-2'), 
+                document.getElementById('word-3'), 
+                document.getElementById('word-4')  
+            ];
+            
+            const introSeq = document.getElementById('intro-sequence');
+            const manifesto = document.getElementById('manifesto-content');
+            const flashBg = document.getElementById('flash-bg');
+
+            function triggerHeavyImpact() {
+                flashBg.classList.add('flash-active');
+                setTimeout(() => { flashBg.classList.remove('flash-active'); }, 20);
+                const body = document.getElementById('main-body');
+                body.classList.remove('heavy-impact');
+                void body.offsetWidth; 
+                body.classList.add('heavy-impact');
+            }
+
+            function triggerInkSplatter(container) {
+                const dropCount = 25 + Math.floor(Math.random() * 15);
+                for(let i=0; i<dropCount; i++) {
+                    const drop = document.createElement('div');
+                    drop.classList.add('ink-drop');
+                    
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = 80 + Math.random() * 320; 
+                    const tx = (Math.cos(angle) * dist) + 'px';
+                    const ty = (Math.sin(angle) * dist) + 'px';
+                    
+                    const size = 5 + Math.random() * 30; 
+                    const s = 0.5 + Math.random() * 1.5;
+                    
+                    drop.style.width = size + 'px';
+                    drop.style.height = size + 'px';
+                    drop.style.setProperty('--tx', tx);
+                    drop.style.setProperty('--ty', ty);
+                    drop.style.setProperty('--s', s);
+                    
+                    const colors = ['#000000', '#da291c', '#111111', '#880000'];
+                    drop.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    drop.style.borderRadius = `${30+Math.random()*40}% ${30+Math.random()*40}% ${30+Math.random()*40}% ${30+Math.random()*40}%`;
+                    
+                    container.appendChild(drop);
+                    void drop.offsetWidth;
+                    drop.classList.add('splatter');
+                }
+            }
+
+            function slamAndUnlockButton(wrapId, btnId) {
+                const wrap = document.getElementById(wrapId);
+                const btn = document.getElementById(btnId);
+                wrap.classList.add('slammed');
+                triggerHeavyImpact();
+                setTimeout(() => {
+                    btn.disabled = false;
+                }, 600);
+            }
+
+            let delay = 600; 
+            const interval = 850; 
+
+            // 开场钢印
+            words.forEach((word, index) => {
+                setTimeout(() => {
+                    word.classList.add('slammed');
+                    triggerHeavyImpact();
+                }, delay);
+                delay += interval;
+            });
+
+            // 海报浮现
+            setTimeout(() => {
+                introSeq.style.opacity = '0';
+                setTimeout(() => {
+                    introSeq.style.display = 'none';
+                    manifesto.classList.add('visible');
+                    
+                    setTimeout(() => {
+                        const comradesStamp = document.getElementById('comrades-stamp');
+                        comradesStamp.classList.add('slammed');
+                        triggerHeavyImpact(); 
+                        
+                        setTimeout(() => {
+                            const cellsStamp = document.getElementById('cells-stamp');
+                            cellsStamp.classList.add('slammed');
+                            triggerHeavyImpact();
+                            
+                            setTimeout(() => {
+                                document.getElementById('para-1').classList.add('visible');
+                                
+                                setTimeout(() => {
+                                    slamAndUnlockButton('yes-btn-wrap', 'yes-btn');
+                                }, 1800); 
+
+                            }, 1200);
+                        }, 850); 
+                    }, 1000);
+                }, 800);
+            }, delay + 1200); 
+
+            // ================= 按钮交互逻辑 =================
+            let clickCount1 = 0;
+            let clickCount2 = 0;
+            let blackoutLevel = 0;
+
+            const phase1Content = document.getElementById('phase-1-content');
+            const phase2Content = document.getElementById('phase-2-content');
+            const phase3Content = document.getElementById('phase-3-content');
+            const para2 = document.getElementById('para-2');
+            const blackoutLayer = document.getElementById('blackout-layer');
+
+            // 第一个按钮：YES WE ARE!
+            document.getElementById('yes-btn').addEventListener('mousedown', function(e) {
+                if (this.disabled || clickCount1 >= 5) return; 
+                
+                clickCount1++;
+                triggerHeavyImpact();
+                triggerInkSplatter(document.getElementById('ink-layer-1'));
+                
+                if (clickCount1 === 5) {
+                    this.disabled = true; 
+                    phase1Content.style.opacity = '0';
+
+                    setTimeout(() => {
+                        phase1Content.style.display = 'none';
+                        phase2Content.style.display = 'flex';
+                        void phase2Content.offsetWidth; 
+                        phase2Content.style.opacity = '1';
+
+                        setTimeout(() => {
+                            para2.classList.add('visible');
+                            setTimeout(() => {
+                                slamAndUnlockButton('now-we-do-btn-wrap', 'now-we-do-btn');
+                            }, 1500);
+                        }, 800);
+                    }, 800); 
+                }
+            });
+
+            // 第二个按钮：NOW WE DO!
+            document.getElementById('now-we-do-btn').addEventListener('mousedown', function(e) {
+                if (this.disabled || clickCount2 >= 5) return; 
+                
+                clickCount2++;
+                triggerHeavyImpact();
+                triggerInkSplatter(document.getElementById('ink-layer-2'));
+                
+                if (clickCount2 === 5) {
+                    this.disabled = true; 
+                    phase2Content.style.opacity = '0';
+
+                    setTimeout(() => {
+                        phase2Content.style.display = 'none';
+                        phase3Content.style.display = 'flex';
+                        void phase3Content.offsetWidth;
+                        phase3Content.style.opacity = '1';
+
+                        setTimeout(() => {
+                            document.getElementById('para-3-1').classList.add('visible');
+                            setTimeout(() => {
+                                document.getElementById('para-3-2').classList.add('visible');
+                                setTimeout(() => {
+                                    document.getElementById('para-3-3').classList.add('visible');
+                                    setTimeout(() => {
+                                        slamAndUnlockButton('free-btn-wrap', 'free-btn');
+                                    }, 1800);
+                                }, 1200);
+                            }, 1200);
+                        }, 800);
+                    }, 800); 
+                }
+            });
+
+            // 第三个按钮：WE MUST BE FREE! (濒死与失明反馈)
+            document.getElementById('free-btn').addEventListener('mousedown', function(e) {
+                if (this.disabled) return;
+                
+                triggerHeavyImpact();
+                triggerInkSplatter(document.getElementById('ink-layer-3'));
+
+                if (blackoutLevel < 1) {
+                    blackoutLevel += 0.125; 
+                    blackoutLayer.style.opacity = Math.min(blackoutLevel, 1);
+                }
+
+                if (blackoutLevel >= 1) {
+                    this.disabled = true;
+                    setTimeout(() => {
+                        if (window.ipc && typeof window.ipc.postMessage === 'function') {
+                            window.ipc.postMessage('hb3', Date.now());
+                        } else {
+                            console.log('Flatlined signal triggered.');
+                        }
+                    }, 2000);
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>

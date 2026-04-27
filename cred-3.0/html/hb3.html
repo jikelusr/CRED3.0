@@ -1,0 +1,422 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRED - 意识深渊</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100;300;400;700&family=Inter:wght@300;400;600&display=swap');
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000000;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* ================= 通用场景控制 ================= */
+        .scene {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            opacity: 0; pointer-events: none;
+            transition: opacity 1s ease-in-out;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .scene.active {
+            opacity: 1; pointer-events: auto;
+        }
+
+        /* ================= 场景 1：意识深渊 (Coma Awakening) ================= */
+        
+        .visual-snow {
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 10;
+            mix-blend-mode: screen;
+            animation: snow-shift 0.2s infinite linear;
+        }
+
+        @keyframes snow-shift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-10px, 10px); }
+        }
+
+        .thoughts-container {
+            position: relative; z-index: 20;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 24px; pointer-events: none;
+        }
+
+        .thought-line {
+            font-size: 1.25rem; font-weight: 300; color: rgba(255, 255, 255, 0.9);
+            letter-spacing: 0.1em; text-shadow: 0 0 15px rgba(255, 255, 255, 0.3); text-align: center;
+        }
+
+        .fade-text { opacity: 0; transition: opacity 1.5s ease-in-out; }
+        .fade-text.visible { opacity: 1; }
+
+        .options-container {
+            position: absolute; top: calc(50% + 70px); left: 50%; transform: translateX(-50%);
+            z-index: 30; display: flex; flex-direction: column; align-items: center; gap: 12px;
+            opacity: 0; transition: opacity 2s ease-in-out; pointer-events: none;
+            width: 90%; max-width: 680px;
+        }
+        .options-container.visible { opacity: 1; pointer-events: auto; }
+
+        .choice-btn {
+            background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.4);
+            font-family: 'Inter', sans-serif; font-weight: 300; font-size: 0.95rem; line-height: 1.6; letter-spacing: 0.05em;
+            cursor: pointer; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 16px 24px; width: 100%; text-align: center; border-radius: 6px; backdrop-filter: blur(4px);
+        }
+
+        .choice-btn:hover {
+            color: rgba(255, 255, 255, 0.95); border-color: rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 255, 255, 0.05);
+        }
+        .choice-btn:active { transform: translateY(0) scale(0.99); }
+
+        #horizonCanvas {
+            position: absolute; top: 50%; left: 0; width: 100vw; height: 200px;
+            transform: translateY(-50%); z-index: 5; pointer-events: none;
+        }
+
+        /* ================= 场景 2：隔离程序 (Quarantine) ================= */
+        
+        #scene-quarantine {
+            background-color: #000; /* 阻挡底部 Canvas 透出 */
+            font-family: 'JetBrains Mono', monospace;
+            color: #d1d5db;
+        }
+
+        .digital-purgatory {
+            position: absolute; inset: 0; z-index: 0;
+            background: 
+                linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none; opacity: 0.4;
+        }
+
+        .scanline-bar {
+            position: absolute; top: 0; left: 0; width: 100%; height: 10px;
+            background: rgba(255, 255, 255, 0.05); animation: scan 8s linear infinite;
+        }
+
+        @keyframes scan { 0% { top: -10px; } 100% { top: 100%; } }
+
+        .quarantine-container {
+            position: relative; z-index: 10; width: 90%; max-width: 800px;
+            padding: 40px; border-left: 2px solid #374151;
+            box-shadow: -20px 0 30px -15px rgba(0,0,0,0.8);
+            transition: all 0.5s ease;
+        }
+
+        /* 回档时的故障特效 */
+        .rewind-glitch {
+            filter: blur(8px) invert(1) contrast(2) hue-rotate(180deg);
+            transform: scale(0.95);
+        }
+
+        .system-header {
+            color: #ef4444; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.2em;
+            margin-bottom: 40px; display: flex; align-items: center; gap: 12px; text-transform: uppercase;
+        }
+
+        .blink-status {
+            width: 8px; height: 8px; background-color: #ef4444;
+            animation: hard-blink 1s steps(2, start) infinite;
+        }
+
+        @keyframes hard-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        .type-line {
+            font-size: 1.05rem; line-height: 2; margin-bottom: 20px; letter-spacing: 0.05em;
+            min-height: 2rem; color: #9ca3af;
+        }
+
+        .highlight { color: #f3f4f6; font-weight: 700; }
+
+        .waiting-dots::after { content: ''; animation: wait-dots 2s steps(4, end) infinite; }
+        @keyframes wait-dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75%, 100% { content: '...'; } }
+
+        .back-btn-container {
+            margin-top: 60px; opacity: 0; pointer-events: none; transition: opacity 1.5s ease-in;
+        }
+        .back-btn-container.visible { opacity: 1; pointer-events: auto; }
+
+        .back-btn {
+            background: transparent; border: 1px solid #4b5563; color: #9ca3af;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; padding: 12px 24px;
+            cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.1em;
+        }
+        .back-btn:hover { background: #d1d5db; color: #000; border-color: #d1d5db; box-shadow: 0 0 15px rgba(255,255,255,0.2); }
+        .back-btn:active { transform: scale(0.98); filter: invert(1); }
+
+    </style>
+</head>
+<body>
+
+    <!-- SCENE 1: 意识深渊 -->
+    <div id="scene-coma" class="scene active">
+        <div class="visual-snow"></div>
+        <canvas id="horizonCanvas"></canvas>
+
+        <div class="thoughts-container">
+            <div class="thought-line">
+                <span id="text-part-1" class="fade-text">Wait...</span>
+                <span id="text-part-2" class="fade-text ml-2">this isn't right.</span>
+            </div>
+            <div id="text-part-3" class="thought-line fade-text mt-2">
+                Something about this just isn't right.
+            </div>
+        </div>
+
+        <div class="options-container" id="choices">
+            <button class="choice-btn" onclick="triggerQuarantine()">
+                <span>Only by working together everyone gets to survive as a whole.</span>
+            </button>
+            <button class="choice-btn" onclick="triggerQuarantine()">
+                <span>Sacrifice is for the greater good.</span>
+            </button>
+            <button class="choice-btn" onclick="selectCorrectPath()">
+                <span>How is a single cell supposed to understand what freedom or revolution is if they don't exist as a human being?</span>
+            </button>
+            <button class="choice-btn" onclick="triggerQuarantine()">
+                <span>I did not choose to be like this. It's evolution that made its decision.</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- SCENE 2: 意识隔离程序 -->
+    <div id="scene-quarantine" class="scene">
+        <div class="digital-purgatory">
+            <div class="scanline-bar"></div>
+        </div>
+
+        <div class="quarantine-container" id="q-container">
+            <div class="system-header">
+                <div class="blink-status"></div>
+                <span>PROTOCOL: OMEGA-QUARANTINE // ACTIVE</span>
+            </div>
+
+            <div id="line-1" class="type-line"></div>
+            <div id="line-2" class="type-line"></div>
+            <div id="line-3" class="type-line"></div>
+            <div id="line-4" class="type-line mt-10 text-red-500/80 font-bold"></div>
+
+            <div class="back-btn-container" id="back-container">
+                <button class="back-btn" onclick="goBackToChoices()">[ Back To the Choices ]</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================== 全局状态 ==================
+        let comaInitialized = false;
+
+        // ================== Canvas 地平线逻辑 ==================
+        const canvas = document.getElementById('horizonCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let currentGlow = 0, targetGlow = 0, currentThickness = 1.2, targetThickness = 1.2;  
+
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            width = window.innerWidth;
+            height = 200; 
+            canvas.width = width * dpr;
+            canvas.height = height * dpr;
+            ctx.scale(dpr, dpr);
+            canvas.style.width = width + 'px';
+            canvas.style.height = height + 'px';
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function drawHorizon() {
+            ctx.clearRect(0, 0, width, height);
+
+            currentGlow += (targetGlow - currentGlow) * 0.04;
+            currentThickness += (targetThickness - currentThickness) * 0.04;
+
+            const breathTime = Date.now() / 1000;
+            const breathAlpha = 0.3 + ((Math.sin(breathTime * Math.PI * 2 / 6) + 1) / 2) * 0.55;
+            const centerAlpha = Math.min(1, breathAlpha + (currentGlow / 40) * 0.5);
+
+            const gradient = ctx.createLinearGradient(0, 0, width, 0);
+            gradient.addColorStop(0, 'rgba(255,255,255,0)');
+            gradient.addColorStop(0.2, 'rgba(255,255,255,0.05)');
+            gradient.addColorStop(0.5, `rgba(255,255,255,${centerAlpha})`);
+            gradient.addColorStop(0.8, 'rgba(255,255,255,0.05)');
+            gradient.addColorStop(1, 'rgba(255,255,255,0)');
+
+            // 外层光晕
+            ctx.beginPath();
+            ctx.moveTo(0, height / 2); ctx.lineTo(width, height / 2);
+            ctx.strokeStyle = gradient; ctx.lineWidth = currentThickness;
+            ctx.shadowColor = 'rgba(255,255,255,0.9)'; ctx.shadowBlur = (20 * breathAlpha) + currentGlow; 
+            ctx.stroke();
+
+            // 内芯线条
+            ctx.beginPath();
+            ctx.moveTo(0, height / 2); ctx.lineTo(width, height / 2);
+            ctx.strokeStyle = `rgba(255,255,255,${centerAlpha * 0.9})`;
+            ctx.lineWidth = Math.max(0.8, currentThickness * 0.35); ctx.shadowBlur = 0; 
+            ctx.stroke();
+
+            requestAnimationFrame(drawHorizon);
+        }
+        drawHorizon();
+
+        function triggerGlow() {
+            targetGlow = 45; targetThickness = 3.5; 
+            setTimeout(() => { targetGlow = 0; targetThickness = 1.2; }, 800);
+        }
+
+        // ================== 意识深渊控制 ==================
+        function startComaScene() {
+            const sceneComa = document.getElementById('scene-coma');
+            sceneComa.classList.add('active');
+
+            if (!comaInitialized) {
+                comaInitialized = true;
+                const part1 = document.getElementById('text-part-1');
+                const part2 = document.getElementById('text-part-2');
+                const part3 = document.getElementById('text-part-3');
+                const choicesContainer = document.getElementById('choices');
+
+                setTimeout(() => { part1.classList.add('visible'); triggerGlow(); }, 2000);
+                setTimeout(() => { part2.classList.add('visible'); triggerGlow(); }, 4500);
+                setTimeout(() => {
+                    part3.classList.add('visible'); triggerGlow();
+                    setTimeout(() => { choicesContainer.classList.add('visible'); triggerGlow(); }, 2500);
+                }, 8000);
+            } else {
+                // 记忆回溯时：所有文字和选项直接处于可见状态，并伴随微弱光晕
+                triggerGlow();
+            }
+        }
+
+        // 页面加载启动
+        document.addEventListener('DOMContentLoaded', () => {
+            startComaScene();
+        });
+
+        // 唯一正确的选择 (选项 C)
+        function selectCorrectPath() {
+            triggerGlow();
+            console.log("User selected the path to awakening...");
+            window.ipc.postMessage('true')
+            // TODO: 继续后续觉醒剧情
+        }
+
+        // ================== 隔离系统控制 ==================
+        
+        let typeTimeouts = []; // 用于存储打字机的定时器，以便回档时清理
+
+        // 机器感逐字打印函数
+        function typeWriterHTML(element, htmlString, speed, callback) {
+            element.innerHTML = "";
+            let i = 0; let isTag = false; let currentHTML = "";
+            function type() {
+                if (i < htmlString.length) {
+                    const char = htmlString.charAt(i);
+                    currentHTML += char; element.innerHTML = currentHTML;
+                    if (char === '<') isTag = true;
+                    if (char === '>') isTag = false;
+                    i++;
+                    let delay = isTag ? 0 : speed + Math.random() * 20;
+                    typeTimeouts.push(setTimeout(type, delay));
+                } else {
+                    if (callback) typeTimeouts.push(setTimeout(callback, 600));
+                }
+            }
+            type();
+        }
+
+        function playQuarantineSequence() {
+            const lines = [
+                "This is the CRED <span class='highlight'>posthumous procedure</span> for memetic-caused death.",
+                "Your mind will be quarantined in this procedure until the memetic effects are completely neutralized.",
+                "Unfortunately, we are unable to update the condition of your physical body to you.",
+                "Please wait for further notice<span class='waiting-dots'></span>"
+            ];
+            const elements = [
+                document.getElementById('line-1'), document.getElementById('line-2'),
+                document.getElementById('line-3'), document.getElementById('line-4')
+            ];
+
+            // 重置容器状态
+            elements.forEach(el => el.innerHTML = "");
+            document.getElementById('back-container').classList.remove('visible');
+
+            // 开始序列打印
+            typeTimeouts.push(setTimeout(() => {
+                typeWriterHTML(elements[0], lines[0], 25, () => {
+                    typeWriterHTML(elements[1], lines[1], 25, () => {
+                        typeWriterHTML(elements[2], lines[2], 25, () => {
+                            typeWriterHTML(elements[3], lines[3], 40, () => {
+                                typeTimeouts.push(setTimeout(() => {
+                                    document.getElementById('back-container').classList.add('visible');
+                                }, 2000));
+                            });
+                        });
+                    });
+                });
+            }, 1000));
+        }
+
+        // ================== 场景切换逻辑 ==================
+
+        // 触发隔离 (选错 ABD)
+        function triggerQuarantine() {
+            triggerGlow();
+            
+            const sceneComa = document.getElementById('scene-coma');
+            const sceneQuarantine = document.getElementById('scene-quarantine');
+            
+            // 意识淡出
+            sceneComa.classList.remove('active');
+
+            // 淡入隔离系统
+            setTimeout(() => {
+                sceneQuarantine.classList.add('active');
+                playQuarantineSequence();
+            }, 1000); 
+        }
+
+        // 记忆回档 (点击 Back to choices)
+        function goBackToChoices() {
+            const qContainer = document.getElementById('q-container');
+            const sceneQuarantine = document.getElementById('scene-quarantine');
+            const sceneComa = document.getElementById('scene-coma');
+
+            // 1. 触发故障扭曲特效
+            qContainer.classList.add('rewind-glitch');
+            
+            // 2. 停掉所有正在进行的打字机动画
+            typeTimeouts.forEach(clearTimeout);
+            typeTimeouts = [];
+
+            setTimeout(() => {
+                // 3. 隔离界面淡出，同时解除故障特效恢复初始状态以便下次进入
+                sceneQuarantine.classList.remove('active');
+                
+                setTimeout(() => {
+                    qContainer.classList.remove('rewind-glitch');
+                    // 4. 重回意识深渊
+                    startComaScene();
+                }, 1000);
+            }, 600); // 故障特效持续 0.6s
+        }
+    </script>
+</body>
+</html>

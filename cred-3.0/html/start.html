@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极简黑白灰几何培训横幅 - 交互Logo版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .bw-border {
+            border: 1.5px solid #000000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+        }
+
+        .inverted-button {
+            background-color: #000000;
+            color: #ffffff;
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 20;
+        }
+
+        .inverted-button:hover {
+            background-color: #ffffff;
+            color: #000000;
+            border: 1px solid #000000;
+        }
+
+        .cred-container {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid #000000;
+            height: 32px;
+            overflow: hidden;
+            white-space: nowrap;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            max-width: 65px;
+            cursor: pointer;
+            padding: 0 10px;
+        }
+
+        .cred-container:hover {
+            max-width: 450px;
+            background-color: #000000;
+            color: #ffffff;
+        }
+
+        .cred-full-text {
+            opacity: 0;
+            transform: translateX(-5px);
+            transition: all 0.4s ease;
+            font-size: 0.7rem;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+        }
+
+        .cred-container:hover .cred-full-text {
+            opacity: 1;
+            transform: translateX(0);
+            margin-left: 10px;
+        }
+
+        /* Logo 容器样式：增加背景颜色平滑过渡 */
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #ffffff;
+            transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: crosshair;
+        }
+
+        /* 悬停时背景反色 */
+        .logo-container:hover {
+            background-color: #000000;
+        }
+
+        .logo-svg {
+            width: 60%;
+            height: auto;
+            max-width: 280px;
+            margin: auto;
+        }
+
+        /* Logo 零件基础样式 */
+        .logo-part {
+            transition: stroke 0.5s ease, filter 0.5s ease, stroke-width 0.3s ease;
+            cursor: pointer;
+        }
+
+        /* 随容器反色：当容器变黑，线条变白 */
+        .logo-container:hover .logo-part {
+            stroke: #ffffff;
+        }
+
+        /* 单个零件悬停特效：增加光亮白边 (Glow Effect) */
+        .logo-part:hover {
+            stroke: #ffffff !important;
+            stroke-width: 2.5px !important;
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.9));
+        }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+
+    <div class="relative w-full max-w-6xl bw-border bg-white flex flex-col md:flex-row items-stretch justify-between min-h-[500px] rounded-sm">
+
+        <!-- 左侧文本区域 -->
+        <div class="flex-1 p-8 md:p-16 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-200 bg-white z-10">
+
+            <div class="mb-10">
+                <div class="cred-container">
+                    <span class="font-bold tracking-widest text-xs">CRED</span>
+                    <span class="cred-full-text uppercase">Consensus Reality Enforcing Division</span>
+                </div>
+            </div>
+
+            <h1 class="text-black text-5xl md:text-7xl font-light leading-[1.2] mb-12 uppercase tracking-widest">
+                TUTORIAL<br>
+                FOR NEW<br>
+                RECRUITS
+            </h1>
+
+            <div class="flex">
+                <button onclick="window.ipc.postMessage('start')" class="px-12 py-3 inverted-button font-bold text-xl uppercase tracking-[0.3em]">
+                    Start
+                </button>
+            </div>
+        </div>
+
+        <!-- 右侧视觉区域 -->
+        <div class="flex-1 min-h-[400px] md:min-h-full logo-container p-4">
+            <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" class="logo-svg">
+                <!-- 方形 A -->
+                <rect class="logo-part" x="37.5" y="37.5" width="110" height="110" stroke="#000000" stroke-width="1.5" />
+                <!-- 方形 B -->
+                <rect class="logo-part" x="52.5" y="52.5" width="110" height="110" stroke="#000000" stroke-width="1.5" />
+                <!-- 字母 C -->
+                <path class="logo-part" d="M115.5 87.5C112.5 83.5 108.5 81.5 102.5 81.5C90.5 81.5 82.5 89.5 82.5 99.5C82.5 109.5 90.5 117.5 102.5 117.5C108.5 117.5 112.5 115.5 115.5 111.5"
+                      stroke="#000000"
+                      stroke-width="1.8"
+                      stroke-linecap="round" />
+            </svg>
+        </div>
+
+    </div>
+
+</body>
+</html>

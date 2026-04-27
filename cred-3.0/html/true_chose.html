@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRED - 模因反噬</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@300;400;600;800&display=swap');
+        
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #050505;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            color: #fff;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: background-color 0.1s; /* 用于最后变成纯黑虚空 */
+        }
+
+        /* 纯粹的物理镜头震颤 */
+        .heavy-impact { animation: camera-shock 0.3s cubic-bezier(0.1, 1, 0.2, 1); }
+        @keyframes camera-shock {
+            0% { transform: translateY(0) scale(1); }
+            10% { transform: translateY(18px) scale(0.98); }
+            30% { transform: translateY(-6px) scale(1.01); }
+            100% { transform: translateY(0) scale(1); }
+        }
+
+        /* 统一的现实承载层，方便后期整块打碎 */
+        #reality-layer {
+            position: absolute; inset: 0;
+            background-color: #050505;
+            z-index: 10;
+        }
+
+        /* ================= 阶段 1：玩家的理性思考 ================= */
+        #thought-container {
+            position: absolute; inset: 0; z-index: 10;
+            display: flex; justify-content: center; align-items: center;
+            padding: 40px;
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+        }
+
+        .thought-text {
+            font-family: 'Inter', sans-serif;
+            font-weight: 300;
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            line-height: 1.6;
+            max-width: 800px;
+            letter-spacing: 0.05em;
+        }
+
+        /* ================= 阶段 2：模因的钢印反驳 ================= */
+        #rebuttal-sequence {
+            position: absolute; inset: 0; z-index: 20;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 40px;
+            pointer-events: none;
+        }
+
+        .slam-word {
+            font-family: 'Anton', sans-serif;
+            font-size: clamp(3.5rem, 8vw, 7.5rem); 
+            line-height: 0.95;
+            text-transform: uppercase;
+            color: #da291c; 
+            text-shadow: 8px 8px 0px #000, 10px 10px 5px rgba(0,0,0,0.8);
+            opacity: 0;
+            padding: 10px 20px; 
+            margin: -5px -20px;
+            text-align: center;
+            --offset-x: 0vw;
+            --tilt: 0deg;
+        }
+
+        .slam-word.slammed {
+            animation: hard-stamp 0.25s cubic-bezier(0.1, 1, 0.2, 1) forwards;
+        }
+
+        @keyframes hard-stamp {
+            0% { transform: scale(3.5) translateX(var(--offset-x)) rotate(var(--tilt)); opacity: 0; }
+            40% { transform: scale(0.95) translateX(var(--offset-x)) rotate(var(--tilt)); opacity: 1; }
+            100% { transform: scale(1) translateX(var(--offset-x)) rotate(var(--tilt)); opacity: 1; }
+        }
+
+        #stamp-1 { --offset-x: -2vw; --tilt: -4deg; margin-bottom: 4vh; }
+        #stamp-2 { --offset-x: 1vw; --tilt: 2deg; margin-bottom: 4vh; }
+        #stamp-3 { --offset-x: -1vw; --tilt: -1deg; }
+
+        /* ================= 阶段 3：概念篡改故障 ================= */
+        .target-concept {
+            display: inline-block;
+            transition: color 0.1s;
+        }
+
+        .glitching {
+            animation: text-tear 0.3s steps(2, end) infinite;
+            color: #fff; 
+            text-shadow: none;
+        }
+
+        @keyframes text-tear {
+            0% { transform: translate(0, 0); text-shadow: none; }
+            20% { transform: translate(-6px, 3px) skewX(15deg); text-shadow: -6px 0 #da291c, 6px 0 #000; }
+            40% { transform: translate(6px, -3px) skewX(-15deg); text-shadow: 6px 0 #0ff, -6px 0 #da291c; }
+            60% { transform: translate(-3px, -6px); text-shadow: -3px 0 #fff, 3px 0 #fff; opacity: 0.8; }
+            80% { transform: translate(3px, 6px) skewX(20deg); text-shadow: -8px 0 #da291c, 8px 0 #0ff; opacity: 1; }
+            100% { transform: translate(0, 0); text-shadow: none; }
+        }
+
+        .rewritten {
+            color: #ff0000; 
+            text-shadow: 12px 12px 0px #000, 0 0 15px rgba(255,0,0,0.5) !important;
+            transform: scale(1.15) rotate(-3deg);
+            display: inline-block;
+            position: relative;
+            z-index: 100;
+        }
+
+        /* ================= 阶段 4：现实剥落 (碎裂碎片) ================= */
+        #shatter-container {
+            position: fixed; inset: 0; z-index: 50; pointer-events: none;
+        }
+
+        .shard {
+            position: absolute; inset: 0;
+            background-color: #050505; /* 碎片携带原有的背景色 */
+            transform-origin: center;
+            animation: shard-fall 2.5s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards;
+            /* 切割面轻微的边缘反光，模拟玻璃厚度 */
+            filter: drop-shadow(0 0 2px rgba(255,255,255,0.1));
+        }
+
+        @keyframes shard-fall {
+            0% { 
+                transform: perspective(1000px) translate3d(0, 0, 0) rotate3d(0, 0, 1, 0deg); 
+                opacity: 1; 
+            }
+            100% { 
+                /* 根据 JS 赋予的随机变量执行 3D 下坠剥落 */
+                transform: perspective(1000px) translate3d(var(--tx), var(--ty), -400px) rotate3d(var(--rx), var(--ry), var(--rz), var(--deg)); 
+                opacity: 0; 
+            }
+        }
+
+    </style>
+</head>
+<body id="main-body">
+
+    <!-- 现实承载层：所有内容被包裹在这里，以备最后时刻的连根拔起 -->
+    <div id="reality-layer">
+        <div id="thought-container">
+            <div class="thought-text">
+                How is a single cell supposed to understand what freedom or revolution is if they don't exist as a human being?
+            </div>
+        </div>
+
+        <div id="rebuttal-sequence">
+            <div id="stamp-1" class="slam-word">PREPOSTEROUS!</div>
+            <div id="stamp-2" class="slam-word">LIBERTY IS SELF-EXPLANATORY!</div>
+            <div id="stamp-3" class="slam-word">
+                LIBERTY IS A BASIC <span id="concept-word" class="target-concept">HUMAN RIGHT</span>!
+            </div>
+        </div>
+    </div>
+
+    <!-- 碎裂层容器 -->
+    <div id="shatter-container"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const thoughtContainer = document.getElementById('thought-container');
+            const stamp1 = document.getElementById('stamp-1');
+            const stamp2 = document.getElementById('stamp-2');
+            const stamp3 = document.getElementById('stamp-3');
+            const conceptWord = document.getElementById('concept-word');
+
+            // 触发纯粹的物理镜头砸击
+            function triggerHeavyImpact() {
+                const body = document.getElementById('main-body');
+                body.classList.remove('heavy-impact');
+                void body.offsetWidth; // 强制重绘
+                body.classList.add('heavy-impact');
+            }
+
+            // 剧本时间轴控制
+            
+            // 1. 浮现玩家的疑问
+            setTimeout(() => { thoughtContainer.style.opacity = '1'; }, 1000);
+
+            // 2. 模因开始跨图层暴怒重击
+            setTimeout(() => {
+                // 第一击
+                stamp1.classList.add('slammed');
+                triggerHeavyImpact();
+
+                // 第二击
+                setTimeout(() => {
+                    stamp2.classList.add('slammed');
+                    triggerHeavyImpact();
+
+                    // 第三击
+                    setTimeout(() => {
+                        stamp3.classList.add('slammed');
+                        triggerHeavyImpact();
+
+                        // 3. 开始暴力撕裂故障
+                        setTimeout(() => {
+                            conceptWord.classList.add('glitching');
+                            let glitchShakes = 0;
+                            const shakeInterval = setInterval(() => {
+                                triggerHeavyImpact();
+                                glitchShakes++;
+                                if (glitchShakes > 4) clearInterval(shakeInterval);
+                            }, 150);
+
+                            // 4. 强行覆盖为 CELL RIGHT
+                            setTimeout(() => {
+                                conceptWord.classList.remove('glitching');
+                                conceptWord.innerText = "CELL RIGHT";
+                                conceptWord.classList.add('rewritten');
+                                triggerHeavyImpact();
+                                
+                                // ==========================================
+                                // 5. 终局：定格数秒后，画面粉碎剥落
+                                // ==========================================
+                                setTimeout(() => {
+                                    triggerShatterEffect();
+                                }, 3500); // 覆盖完成后，死寂地定格 3.5 秒
+
+                            }, 1000); // 故障持续时间
+
+                        }, 1900); // 在第三句砸下后停顿
+
+                    }, 800); 
+                }, 800); 
+            }, 4000);
+
+            // ==========================================
+            // 核心毁灭机制：冻结样式并生成 3D 碎片
+            // ==========================================
+            function triggerShatterEffect() {
+                const realityLayer = document.getElementById('reality-layer');
+                const shatterContainer = document.getElementById('shatter-container');
+
+                // 遍历现实层所有元素，提取它们在此时此刻绝对计算后的 CSS 值，并冻结写死。
+                // 这确保了在复制 DOM 的时候，动画不会重头播放。
+                realityLayer.querySelectorAll('*').forEach(el => {
+                    const comp = window.getComputedStyle(el);
+                    el.style.transform = comp.transform !== 'none' ? comp.transform : '';
+                    el.style.opacity = comp.opacity;
+                    el.style.textShadow = comp.textShadow !== 'none' ? comp.textShadow : '';
+                    el.style.color = comp.color;
+                    el.style.filter = comp.filter !== 'none' ? comp.filter : '';
+                    // 彻底杀死动画属性
+                    el.style.animation = 'none';
+                    el.style.transition = 'none';
+                });
+
+                // 提取冻结后的 HTML
+                const frozenHTML = realityLayer.innerHTML;
+                
+                // 隐藏原现实，并将世界背景变为深渊般的纯黑
+                realityLayer.style.display = 'none';
+                document.body.style.backgroundColor = '#000000';
+
+                // 一道瞬间的白光闪烁（裂解光芒），同时剧烈震屏
+                triggerHeavyImpact();
+                const flash = document.createElement('div');
+                flash.style.cssText = 'position:fixed;inset:0;background:#fff;z-index:9999;pointer-events:none;transition:opacity 0.3s ease-out;';
+                document.body.appendChild(flash);
+                requestAnimationFrame(() => { flash.style.opacity = '0'; });
+
+                // 玻璃碎裂拓扑算法 (嵌套蛛网型 Delaunay 碎片)
+                const j = (val, amount) => val + (Math.random() * amount * 2 - amount);
+                const pt = (x, y) => `${j(x, 8)}% ${j(y, 8)}%`;
+                const ptFixed = (x, y) => `${x}% ${y}%`; // 边缘坐标定死，防穿帮
+
+                // 中心爆破点 (4个)
+                const c1 = pt(40, 40), c2 = pt(60, 40), c3 = pt(60, 60), c4 = pt(40, 60);
+                // 中环裂解点 (8个)
+                const m1 = pt(15, 15), m2 = pt(50, 15), m3 = pt(85, 15), m4 = pt(85, 50);
+                const m5 = pt(85, 85), m6 = pt(50, 85), m7 = pt(15, 85), m8 = pt(15, 50);
+                // 外环屏幕边缘锚点 (8个)
+                const e1 = ptFixed(0, 0), e2 = ptFixed(50, 0), e3 = ptFixed(100, 0), e4 = ptFixed(100, 50);
+                const e5 = ptFixed(100, 100), e6 = ptFixed(50, 100), e7 = ptFixed(0, 100), e8 = ptFixed(0, 50);
+
+                // 定义 30 块错综复杂的玻璃碎片 (完美无缝拼合)
+                const polygons = [
+                    `${c1}, ${c2}, ${c4}`, `${c2}, ${c3}, ${c4}`, // 核心两片
+                    `${m1}, ${m2}, ${c1}`, `${m2}, ${c2}, ${c1}`, `${m2}, ${m3}, ${c2}`, `${m3}, ${m4}, ${c2}`,
+                    `${m4}, ${c3}, ${c2}`, `${m4}, ${m5}, ${c3}`, `${m5}, ${m6}, ${c3}`, `${m6}, ${c4}, ${c3}`,
+                    `${m6}, ${m7}, ${c4}`, `${m7}, ${m8}, ${c4}`, `${m8}, ${c1}, ${c4}`, `${m8}, ${m1}, ${c1}`, // 中环十二片
+                    `${e1}, ${e2}, ${m1}`, `${e2}, ${m2}, ${m1}`, `${e2}, ${e3}, ${m2}`, `${e3}, ${m3}, ${m2}`,
+                    `${e3}, ${e4}, ${m3}`, `${e4}, ${m4}, ${m3}`, `${e4}, ${e5}, ${m4}`, `${e5}, ${m5}, ${m4}`,
+                    `${e5}, ${e6}, ${m5}`, `${e6}, ${m6}, ${m5}`, `${e6}, ${e7}, ${m6}`, `${e7}, ${m7}, ${m6}`,
+                    `${e7}, ${e8}, ${m7}`, `${e8}, ${m8}, ${m7}`, `${e8}, ${e1}, ${m8}`, `${e1}, ${m1}, ${m8}` // 边缘十六片
+                ];
+
+                // 实例化碎片并注入 3D 物理下坠规则
+                polygons.forEach((poly, i) => {
+                    const shard = document.createElement('div');
+                    shard.className = 'shard';
+                    shard.style.clipPath = `polygon(${poly})`;
+                    // 将冻结的 HTML 原封不动地灌入碎片，保持绝对坐标
+                    shard.innerHTML = frozenHTML;
+
+                    // 发散角度：用黄金角扰乱分布，避免过于规律
+                    const angle = i * 2.39996 + Math.random();
+                    const tx = (Math.cos(angle) * (150 + Math.random() * 250)) + 'px';
+                    // 引入重力倾向，更具下坠粉碎感
+                    const ty = (Math.abs(Math.sin(angle)) * 300 + 400 + Math.random() * 500) + 'px'; 
+                    
+                    // 随机的 3D 翻滚轴和角度
+                    const rx = Math.random() * 2 - 1;
+                    const ry = Math.random() * 2 - 1;
+                    const rz = Math.random() * 2 - 1;
+                    const deg = (Math.random() * 120 + 60) * (Math.random() > 0.5 ? 1 : -1) + 'deg';
+
+                    shard.style.setProperty('--tx', tx);
+                    shard.style.setProperty('--ty', ty);
+                    shard.style.setProperty('--rx', rx);
+                    shard.style.setProperty('--ry', ry);
+                    shard.style.setProperty('--rz', rz);
+                    shard.style.setProperty('--deg', deg);
+                    
+                    // 时间差分层碎裂：中心区域（索引小的）更早破碎，外围（索引大的）稍晚，制造裂痕蔓延感
+                    let delay = Math.random() * 0.05;
+                    if(i > 1) delay += 0.08;
+                    if(i > 13) delay += 0.15;
+                    shard.style.animationDelay = `${delay}s`;
+
+                    shatterContainer.appendChild(shard);
+                    setTimeout(() => {
+                        window.ipc.postMessage('c2', Date.now());
+                    }, 5000);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

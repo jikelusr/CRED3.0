@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRED - 系统接入中</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;700&family=JetBrains+Mono:wght@300;400&display=swap');
+        
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #000;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #canvas-bg { position: fixed; top: 0; left: 0; z-index: 0; }
+
+        .ui-layer {
+            position: relative; z-index: 10;
+            width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        .terminal-window {
+            width: 90%; max-width: 850px;
+            background: rgba(242, 242, 242, 0.98); 
+            border: 1.5px solid #000;
+            min-height: 580px;
+            display: flex; flex-direction: column;
+            box-shadow: 0 30px 90px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        .status-bar {
+            height: 40px; border-bottom: 1.5px solid #000;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 15px; font-weight: 700; font-size: 0.75rem;
+            letter-spacing: 0.1em;
+        }
+
+        .console-output {
+            flex-grow: 1; padding: 30px 40px;
+            color: #111; overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 加载动画 */
+        #loader-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.6s ease;
+        }
+
+        .geometric-loader {
+            position: relative;
+            width: 70px; height: 70px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .loader-square {
+            position: absolute; width: 100%; height: 100%;
+            border: 1.5px solid #000;
+            animation: rotate-square 2.5s infinite cubic-bezier(0.65, 0, 0.35, 1);
+        }
+
+        .loader-square:nth-child(2) {
+            border-color: #999; width: 85%; height: 85%;
+            animation-delay: 0.4s; animation-direction: reverse;
+        }
+
+        @keyframes rotate-square {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 欢迎词排版 */
+        .welcome-content {
+            display: none;
+            opacity: 0;
+            flex-direction: column;
+            align-items: center; 
+            text-align: center; 
+            width: 100%;
+            transition: opacity 1s ease;
+        }
+
+        .welcome-title {
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 0.2em;
+            margin-bottom: 35px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .cred-container {
+            display: inline-flex;
+            align-items: center;
+            border: 1.5px solid #000;
+            height: 42px;
+            overflow: hidden;
+            white-space: nowrap;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            max-width: 90px;
+            cursor: pointer;
+            padding: 0 16px;
+            background: transparent;
+            color: #000;
+        }
+
+        .cred-container:hover {
+            max-width: 520px; 
+            background-color: #000; 
+            color: #ffffff;
+        }
+
+        .cred-tag { font-weight: 900; letter-spacing: 0.1em; font-size: 1.2rem; }
+        .cred-full-text { opacity: 0; transform: translateX(-5px); transition: all 0.4s ease; font-size: 0.75rem; font-weight: 400; letter-spacing: 0.05em; }
+        .cred-container:hover .cred-full-text { opacity: 1; transform: translateX(0); margin-left: 15px; }
+
+        .welcome-body {
+            display: grid;
+            grid-template-columns: 1fr;
+            width: 100%;
+            max-width: 720px;
+            min-height: 240px; 
+        }
+
+        .text-page {
+            grid-area: 1 / 1; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease;
+        }
+
+        .text-page.active { opacity: 1; pointer-events: auto; }
+
+        .reveal-line {
+            opacity: 0;
+            transition: opacity 1s ease;
+            margin-bottom: 14px;
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .reveal-line.visible { opacity: 1; }
+
+        /* Training Session 布局 */
+        .training-briefing-layout {
+            display: flex;
+            gap: 30px;
+            width: 100%;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .briefing-text-column {
+            flex: 1;
+            max-height: 200px;
+            overflow-y: hidden; 
+            padding-right: 15px;
+        }
+
+        .briefing-text-column::-webkit-scrollbar {
+            display: none;
+        }
+
+        .intel-image-placeholder {
+            width: 240px;
+            height: 200px;
+            border: 1px solid #000;
+            background: #e5e5e5;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 2px);
+        }
+
+        .intel-tag {
+            position: absolute; top: 0; left: 0;
+            background: #000; color: #fff;
+            font-size: 0.6rem; padding: 2px 6px;
+            letter-spacing: 0.1em;
+        }
+
+        .no-signal-text {
+            font-size: 0.65rem; color: #888;
+            letter-spacing: 0.2em; text-transform: uppercase;
+        }
+
+        /* 动态省略号加载动画 */
+        .loading-dots::after {
+            content: '.';
+            display: inline-block;
+            width: 1.5em;
+            text-align: left;
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80%, 100% { content: ''; }
+        }
+
+        /* --- 沉浸式文本视觉特效区 --- */
+
+        /* 特效：worse (极微弱的偶发视觉撕裂/故障) */
+        .effect-worse {
+            display: inline-block;
+            position: relative;
+            animation: glitch-worse 6s infinite;
+        }
+        @keyframes glitch-worse {
+            0%, 96%, 98%, 100% { transform: none; filter: none; }
+            97% { transform: translate(-1px, 0.5px); filter: drop-shadow(1px 0 0 rgba(255,0,0,0.5)) drop-shadow(-1px 0 0 rgba(0,255,255,0.5)); }
+            99% { transform: translate(1px, -0.5px); filter: drop-shadow(-1px 0 0 rgba(255,0,0,0.5)) drop-shadow(1px 0 0 rgba(0,255,255,0.5)); }
+        }
+
+        /* 特效：meaning (缓慢流动的灰度遮罩，模拟概念擦除) */
+        .effect-meaning {
+            background: linear-gradient(90deg, #333 0%, #a3a3a3 50%, #333 100%);
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: scrub-meaning 4s linear infinite;
+        }
+        @keyframes scrub-meaning {
+            to { background-position: 200% center; }
+        }
+
+        /* 特效：Amnestics (极其缓慢的失焦模糊与淡化) */
+        .effect-amnestics {
+            display: inline-block;
+            animation: fade-amnestics 8s infinite alternate ease-in-out;
+        }
+        @keyframes fade-amnestics {
+            0%, 20% { filter: blur(0px); opacity: 1; }
+            80%, 100% { filter: blur(0.6px); opacity: 0.65; }
+        }
+
+        /* 特效：your signature alone (官僚感强烈的代码格式化高亮) */
+        .effect-signature {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            letter-spacing: 0;
+            background: rgba(0,0,0,0.06);
+            padding: 2px 4px;
+            border: 1px solid rgba(0,0,0,0.15);
+            border-radius: 2px;
+        }
+
+        /* 特效：Emerald Queen (暗邃的深绿呼吸幽光) */
+        .effect-emerald {
+            color: #064e3b; /* 深祖母绿 */
+            font-weight: 700;
+            animation: breathe-emerald 4s infinite alternate ease-in-out;
+        }
+        @keyframes breathe-emerald {
+            from { text-shadow: 0 0 1px rgba(16, 185, 129, 0.1); }
+            to { text-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
+        }
+
+        /* 选项按钮 */
+        .options-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        .options-container.visible { opacity: 1; }
+
+        .option-btn {
+            width: 100%;
+            text-align: left;
+            padding: 10px 18px;
+            border: 1px solid rgba(0,0,0,0.1);
+            background: rgba(255,255,255,0.6);
+            color: #333;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            display: flex;
+            gap: 15px;
+            cursor: pointer;
+        }
+        .option-btn:hover:not(:disabled) { background: #000; color: #fff; border-color: #000; }
+        .option-btn:disabled { cursor: default; }
+        .option-label { font-weight: 700; }
+
+        /* 导航控制 */
+        .nav-controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            min-height: 40px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            padding: 10px 24px;
+            border: 1.5px solid #000;
+            background: transparent;
+            color: #000;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .nav-btn:hover { background: #000; color: #fff; }
+        
+        .sign-btn { border-color: #16a34a; color: #16a34a; }
+        .sign-btn:hover { background: #16a34a; color: #fff; border-color: #16a34a; }
+
+        .loading-bar-container { height: 2px; width: 100%; background: #eee; position: relative; overflow: hidden; }
+        .loading-progress { position: absolute; left: 0; top: 0; height: 100%; background: #000; width: 0%; transition: width 0.1s linear; }
+
+        /* 签名模态框 */
+        #sign-modal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(242, 242, 242, 0.99);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .sign-header { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.4em; margin-bottom: 30px; text-transform: uppercase; color: #000; }
+        
+        .signature-pad-container {
+            width: 100%;
+            max-width: 500px;
+            height: 200px;
+            border: 1px solid #ddd;
+            background: #fff;
+            position: relative;
+            cursor: crosshair;
+        }
+
+        #signature-canvas { width: 100%; height: 100%; }
+
+        .sign-actions {
+            margin-top: 30px;
+            display: flex;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="canvas-bg"></canvas>
+
+    <div class="ui-layer">
+        <div class="terminal-window">
+            <div class="status-bar">
+                <div class="flex items-center gap-3">
+                    <svg viewBox="0 0 200 200" fill="none" style="width:24px; height:24px;">
+                        <rect x="37.5" y="37.5" width="110" height="110" stroke="#000" stroke-width="10" />
+                        <rect x="52.5" y="52.5" width="110" height="110" stroke="#000" stroke-width="10" />
+                        <path d="M115.5 87.5C112.5 83.5 108.5 81.5 102.5 81.5C90.5 81.5 82.5 89.5 82.5 99.5C82.5 109.5 90.5 117.5 102.5 117.5" stroke="#000" stroke-width="12" stroke-linecap="round" />
+                    </svg>
+                    <span id="header-status">CLEARANCE LEVEL: 0</span>
+                </div>
+                <div id="percentage">0%</div>
+            </div>
+
+            <div class="loading-bar-container">
+                <div id="progress" class="loading-progress"></div>
+            </div>
+
+            <div class="console-output">
+                <div id="loader-container">
+                    <div class="geometric-loader">
+                        <div class="loader-square"></div>
+                        <div class="loader-square"></div>
+                        <div style="position: absolute; width: 24px; height: 24px;">
+                            <svg viewBox="0 0 100 100" fill="none">
+                                <path d="M70 35C66 31 60 28 52 28C38 28 28 38 28 50C28 62 38 72 52 72C60 72 66 69 70 65" stroke="#000" stroke-width="8" stroke-linecap="round" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="welcome-area" class="welcome-content">
+                    <div class="welcome-title">
+                        <span>Welcome to</span>
+                        <div class="cred-container">
+                            <span class="cred-tag">CRED</span>
+                            <span class="cred-full-text uppercase">Consensus Reality Enforcing Division</span>
+                        </div>
+                    </div>
+
+                    <div class="welcome-body" id="content-container">
+                        <div class="text-page active" id="page-1">
+                            <div class="reveal-line" data-page="1">We are not a government, nor can we be categorized as a corporation.</div>
+                            <div class="reveal-line" data-page="1">We exist to protect humanity from what it was never meant to know.</div>
+                            <div class="reveal-line" data-page="1">Every day, we hold the line against anomalies — gods, monsters, living ideas, and <span class="effect-worse">worse</span>.</div>
+                            <div class="welcome-footer reveal-line" data-page="1">The public must never know.</div>
+                        </div>
+
+                        <div class="text-page" id="page-2">
+                            <div class="reveal-line" data-page="2">That is why the Department of Public Relations and Information Management exists.</div>
+                            <div class="reveal-line" data-page="2">Our task is not to destroy anomalies, but to destroy their <span class="effect-meaning">meaning</span>.</div>
+                            <div class="reveal-line" data-page="2">We scrub, rewrite, distract, and bury. We turn catastrophes into rumors, monsters into urban legends, gods into memes.</div>
+                            <div class="welcome-footer reveal-line" data-page="2">You are now part of that work.</div>
+                        </div>
+
+                        <div class="text-page" id="page-3">
+                            <div class="w-full max-w-xl mx-auto flex flex-col gap-6 text-left">
+                                <div class="reveal-line flex items-start gap-4" data-page="3">
+                                    <span class="font-mono text-sm mt-1 font-bold">01 /</span>
+                                    <span class="text-[1.05rem] leading-relaxed">You will only know what you need to know.</span>
+                                </div>
+                                <div class="reveal-line flex items-start gap-4" data-page="3">
+                                    <span class="font-mono text-sm mt-1 font-bold">02 /</span>
+                                    <span class="text-[1.05rem] leading-relaxed">You will follow instructions exactly.</span>
+                                </div>
+                                <div class="reveal-line flex items-start gap-4 pt-5 border-t border-black/10 mt-2" data-page="3">
+                                    <span class="font-mono text-sm mt-1 font-bold text-gray-500">03 /</span>
+                                    <span class="text-[0.95rem] leading-relaxed text-gray-600">
+                                        <span class="effect-amnestics">Amnestics are applicable to you.</span> Since you will not remember signing this agreement in that case, <span class="effect-signature">your signature alone</span> will be sufficient to prove your consent.
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-page" id="page-4">
+                            <div class="reveal-line font-bold tracking-tighter text-lg mb-6 self-start text-green-600 uppercase" data-page="4">Training Session</div>
+                            <div class="training-briefing-layout">
+                                <div class="briefing-text-column">
+                                    <div class="reveal-line" data-page="4">Yesterday, a group of cultists worshiping an entity called the <span class="effect-emerald">Emerald Queen</span> attempted to infiltrate the White House.</div>
+                                    <div class="reveal-line" data-page="4">Their goal: to have one of her servitor demons possess the U.S. President.</div>
+                                </div>
+                                <div class="intel-image-placeholder reveal-line" data-page="4">
+                                    <div class="intel-tag">INTEL_VISUAL_01</div>
+                                    <div class="no-signal-text">NO SIGNAL</div>
+                                </div>
+                            </div>
+                            <div class="options-container" id="training-options">
+                                <button class="option-btn" onclick="selectOption('A')">
+                                    <span class="option-label">A.</span> Draft a cover story. Our press partners and net bots will handle distribution.
+                                </button>
+
+                                <button class="option-btn" onclick="selectOption('B')">
+                                    <span class="option-label">B.</span> Scrub all relevant media posts and blacklist associated keywords.
+                                </button>
+
+                                <button class="option-btn" onclick="selectOption('C')">
+                                    <span class="option-label">C.</span> Deploy field agents to administer amnestics to involved personnel.
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="text-page" id="page-5">
+                            <div class="reveal-line" data-page="5">Resources being allocated<span class="loading-dots"></span></div>
+                            <div class="reveal-line" data-page="5">Oh, by the way — that wasn’t a simulation.</div>
+                            <div class="welcome-footer reveal-line" data-page="5" style="margin-top: 40px; font-size: 1.1rem; color: #16a34a;">Congratulations, and welcome aboard.</div>
+                        </div>
+                    </div>
+
+                    <div class="nav-controls" id="nav-controls">
+                        <button class="nav-btn" id="prev-btn" style="display:none;" onclick="changePage(-1)">Previous</button>
+                        <button class="nav-btn sign-btn" id="sign-btn" style="display:none;" onclick="openSignature()">Sign Agreement</button>
+                        <button class="nav-btn" id="next-btn" onclick="changePage(1)">Next</button>
+                    </div>
+                </div>
+
+                <div id="sign-modal">
+                    <div class="sign-header">Authentication Required: Recruit Signature</div>
+                    <div class="signature-pad-container">
+                        <canvas id="signature-canvas"></canvas>
+                    </div>
+                    <div class="sign-actions">
+                        <button class="nav-btn" onclick="clearSignature()">Clear</button>
+                        <button class="nav-btn" onclick="closeSignature()">Cancel</button>
+                        <button class="nav-btn sign-btn" onclick="confirmSignature()">Confirm & Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const bgCanvas = document.getElementById('canvas-bg');
+        const bgCtx = bgCanvas.getContext('2d');
+        let particles = [];
+
+        function resize() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+            particles = Array.from({ length: 400 }, () => ({
+                x: Math.random() * bgCanvas.width, y: Math.random() * bgCanvas.height,
+                vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
+                size: Math.random() * 2
+            }));
+        }
+
+        function drawBg() {
+            bgCtx.fillStyle = '#000'; bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+            bgCtx.fillStyle = 'rgba(255,255,255,0.3)';
+            particles.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                if(p.x < 0 || p.x > bgCanvas.width) p.vx *= -1;
+                if(p.y < 0 || p.y > bgCanvas.height) p.vy *= -1;
+                bgCtx.fillRect(p.x, p.y, p.size, p.size);
+            });
+            requestAnimationFrame(drawBg);
+        }
+
+        const progressBar = document.getElementById('progress');
+        const percentText = document.getElementById('percentage');
+        const welcomeArea = document.getElementById('welcome-area');
+        const loaderContainer = document.getElementById('loader-container');
+        const navControls = document.getElementById('nav-controls');
+        
+        let currentProgress = 0, currentPage = 1, isRevealing = false, totalPages = 5;
+
+        function updateLoading() {
+            if (currentProgress < 100) {
+                currentProgress += Math.random() * 5.0; 
+                if (currentProgress > 100) currentProgress = 100;
+                progressBar.style.width = currentProgress + "%";
+                percentText.textContent = Math.round(currentProgress) + "%";
+                setTimeout(updateLoading, 40);
+            } else {
+                setTimeout(() => {
+                    loaderContainer.style.opacity = '0';
+                    setTimeout(() => {
+                        loaderContainer.style.display = 'none';
+                        welcomeArea.style.display = 'flex';
+                        setTimeout(() => { welcomeArea.style.opacity = '1'; revealCurrentPage(); }, 100);
+                    }, 600);
+                }, 600);
+            }
+        }
+
+        async function revealCurrentPage() {
+            if (isRevealing) return;
+            isRevealing = true;
+            navControls.style.opacity = '0';
+            const lines = document.querySelectorAll(`.reveal-line[data-page="${currentPage}"]`);
+            for (let line of lines) {
+                line.classList.add('visible');
+                await new Promise(r => setTimeout(r, 800));
+            }
+
+            if (currentPage === 4) {
+                document.getElementById('training-options').classList.add('visible');
+            }
+
+            isRevealing = false;
+            updateNavDisplay();
+
+            if (currentPage === 5) {
+                setTimeout(function() {
+                    window.ipc.postMessage("go_to_next_scene");
+                }, 5000);
+        // 第 5 页不显示导航按钮
+            } else {
+                navControls.style.opacity = '1';
+            }
+        }
+
+        function updateNavDisplay() {
+            const nextBtn = document.getElementById('next-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            const signBtn = document.getElementById('sign-btn');
+            
+            if (currentPage === 5) {
+                prevBtn.style.display = 'none';
+                nextBtn.style.display = 'none';
+                signBtn.style.display = 'none';
+            } else {
+                prevBtn.style.display = (currentPage === 1 || currentPage === 4) ? 'none' : 'block';
+                nextBtn.style.display = (currentPage >= 3) ? 'none' : 'block';
+                signBtn.style.display = (currentPage === 3) ? 'block' : 'none';
+            }
+        }
+
+        function changePage(dir) {
+            if (isRevealing) return;
+            document.getElementById(`page-${currentPage}`).classList.remove('active');
+            currentPage += dir;
+            document.getElementById(`page-${currentPage}`).classList.add('active');
+            navControls.style.opacity = '0';
+            const anyLineInvisible = Array.from(document.getElementById(`page-${currentPage}`).querySelectorAll('.reveal-line')).some(el => !el.classList.contains('visible'));
+            if (anyLineInvisible) revealCurrentPage();
+            else { updateNavDisplay(); if(currentPage !== 5) setTimeout(() => navControls.style.opacity = '1', 300); }
+        }
+
+        const sigCanvas = document.getElementById('signature-canvas');
+        const sigCtx = sigCanvas.getContext('2d');
+        let isSigning = false;
+
+        function openSignature() { document.getElementById('sign-modal').style.display = 'flex'; resizeSigCanvas(); }
+        function closeSignature() { document.getElementById('sign-modal').style.display = 'none'; }
+        
+        function resizeSigCanvas() {
+            const rect = sigCanvas.parentElement.getBoundingClientRect();
+            sigCanvas.width = rect.width;
+            sigCanvas.height = rect.height;
+            sigCtx.lineWidth = 2;
+            sigCtx.lineCap = 'round';
+            sigCtx.strokeStyle = '#000';
+        }
+
+        function clearSignature() { sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height); }
+
+function confirmSignature() {
+    var intelPlaceholder = document.querySelector('.intel-image-placeholder');
+    
+    // 使用相对路径
+    intelPlaceholder.innerHTML = `
+        <div class="intel-tag">INTEL_VISUAL_01</div>
+        <img src="tlp.jpg" style="width:100%; height:100%; object-fit:contain;">
+    `;
+    
+    closeSignature();
+    document.getElementById('header-status').textContent = 'CLEARANCE LEVEL: 1';
+    document.getElementById(`page-${currentPage}`).classList.remove('active');
+    currentPage = 4;
+    document.getElementById(`page-${currentPage}`).classList.add('active');
+    revealCurrentPage();
+}
+
+function selectOption(choice) {
+    const btns = document.querySelectorAll('.option-btn');
+    btns.forEach(b => {
+        b.disabled = true;
+        b.style.opacity = "0.4";
+    });
+    
+    // ✅ 通知 Godot 用户选了哪个
+    window.ipc.postMessage(choice);
+
+    setTimeout(() => {
+        document.getElementById(`page-4`).classList.remove('active');
+        currentPage = 5;
+        document.getElementById(`page-5`).classList.add('active');
+        navControls.style.opacity = '0';
+        revealCurrentPage();
+    }, 1200);
+}
+
+        function getPos(e) {
+            const rect = sigCanvas.getBoundingClientRect();
+            const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+            const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        sigCanvas.addEventListener('mousedown', (e) => { isSigning = true; const pos = getPos(e); sigCtx.beginPath(); sigCtx.moveTo(pos.x, pos.y); });
+        sigCanvas.addEventListener('mousemove', (e) => { if (!isSigning) return; const pos = getPos(e); sigCtx.lineTo(pos.x, pos.y); sigCtx.stroke(); });
+        window.addEventListener('mouseup', () => isSigning = false);
+
+        sigCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); isSigning = true; const pos = getPos(e); sigCtx.beginPath(); sigCtx.moveTo(pos.x, pos.y); });
+        sigCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (!isSigning) return; const pos = getPos(e); sigCtx.lineTo(pos.x, pos.y); sigCtx.stroke(); });
+        window.addEventListener('touchend', () => isSigning = false);
+
+        window.addEventListener('resize', () => { resize(); resizeSigCanvas(); });
+        window.onload = () => { resize(); drawBg(); setTimeout(updateLoading, 800); };
+    </script>
+</body>
+</html>
