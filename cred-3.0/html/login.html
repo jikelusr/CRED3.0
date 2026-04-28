@@ -27,6 +27,7 @@
             overflow: hidden;
         }
 
+        /* ===== 分形背景样式 ===== */
         .fractal-bg {
             position: absolute;
             inset: 0;
@@ -46,48 +47,17 @@
             min-height: 120vmax;
         }
 
-        /* 背景动画层1：外层三角形旋转 */
         .layer-1 { animation: fractalRotate1 40s linear infinite; }
-        /* 背景动画层2：六边形网格反向旋转 */
         .layer-2 { animation: fractalRotate2 50s linear infinite reverse; }
-        /* 背景动画层3：同心圆呼吸缩放 */
         .layer-3 { animation: fractalPulse 30s ease-in-out infinite; }
-        /* 背景动画层4：方形网格旋转 */
         .layer-4 { animation: fractalRotate3 60s linear infinite; }
-        /* 背景动画层5：放射线反向旋转 */
         .layer-5 { animation: fractalRotate4 70s linear infinite reverse; }
 
-        @keyframes fractalRotate1 {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @keyframes fractalRotate2 {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(-360deg); }
-        }
-
-        @keyframes fractalRotate3 {
-            0% { transform: rotate(0deg) scale(1); }
-            50% { transform: rotate(180deg) scale(1.1); }
-            100% { transform: rotate(360deg) scale(1); }
-        }
-
-        @keyframes fractalRotate4 {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(-360deg); }
-        }
-
-        @keyframes fractalPulse {
-            0%, 100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-            50% {
-                transform: scale(1.15);
-                opacity: 0.7;
-            }
-        }
+        @keyframes fractalRotate1 { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fractalRotate2 { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+        @keyframes fractalRotate3 { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(180deg) scale(1.1); } 100% { transform: rotate(360deg) scale(1); } }
+        @keyframes fractalRotate4 { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+        @keyframes fractalPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.15); opacity: 0.7; } }
 
         /* 登录卡片 */
         .login-card {
@@ -101,9 +71,9 @@
             flex-direction: column;
             align-items: center;
             gap: 1rem;
+            transition: transform 0.3s ease, opacity 0.3s ease, filter 0.3s ease;
         }
 
-        /* Logo 区域 */
         .logo-section {
             display: flex;
             align-items: center;
@@ -117,12 +87,9 @@
             color: #000;
         }
 
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-        }
+        .logo-icon { width: 40px; height: 40px; }
 
-        input {
+        input[type="text"] {
             width: 16rem;
             padding: 0.75rem 1rem;
             border: 1px solid #d1d5db;
@@ -131,12 +98,9 @@
             transition: border-color 0.2s;
         }
 
-        input:focus {
-            outline: none;
-            border-color: #000;
-        }
+        input[type="text"]:focus { outline: none; border-color: #000; }
 
-        button {
+        button.main-btn {
             width: 16rem;
             padding: 0.75rem 3rem;
             background: #000;
@@ -149,107 +113,243 @@
             transition: all 0.3s;
         }
 
-        button:hover {
+        button.main-btn:hover:not(:disabled) {
             background: #374151;
             transform: scale(1.05);
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
         }
 
-        button:active {
-            transform: scale(0.95);
-            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
-            background: #111;
+        button.main-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
         }
+
+        /* ===== 设置图标样式 ===== */
+        .settings-trigger {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 3.5rem;
+            height: 3.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: white;
+        }
+
+        .settings-trigger:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        .settings-trigger svg {
+            width: 1.75rem;
+            height: 1.75rem;
+        }
+
+        /* ===== 设置菜单遮罩层 ===== */
+        .settings-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(15px);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .settings-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 统一菜单容器 */
+        .settings-container {
+            width: 100%;
+            max-width: 320px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .settings-overlay.active .settings-container {
+            transform: translateY(0);
+        }
+
+        /* 菜单视图切换 */
+        .menu-view {
+            width: 100%;
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .menu-view.active {
+            display: flex;
+        }
+
+        .settings-title {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .menu-item {
+            width: 100%;
+            padding: 1rem;
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            text-transform: capitalize;
+        }
+
+        .menu-item:hover {
+            background: white;
+            color: black;
+            transform: translateX(10px);
+        }
+
+        .menu-item.danger:hover {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: white;
+        }
+
+        /* ===== 音频面板样式 ===== */
+        .audio-controls {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: white;
+            cursor: pointer;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 6px;
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            transform: translateX(-5px);
+        }
+
+        /* 关闭按钮样式 */
+        .close-link {
+            margin-top: 1.5rem;
+            color: rgba(255, 255, 255, 0.5);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            text-decoration: underline;
+            align-self: center;
+        }
+
+        .close-link:hover { color: white; }
     </style>
 </head>
 <body>
-    <!--
-        ============================================================
-        最外层容器：全屏居中布局
-        背景是分形几何动画（5层叠加的 SVG 图形循环旋转缩放）
-        ============================================================
-    -->
     <div class="container">
-
-        <!-- ===== 分形背景动画层 ===== -->
+        <!-- 分形背景动画 -->
         <div class="fractal-bg">
-            <!-- 第1层：外层三角形，40秒顺时针旋转一圈 -->
             <div class="fractal-layer layer-1">
                 <svg viewBox="-500 -500 2000 2000">
                     <polygon points="500,-400 1400,1400 -400,1400" fill="none" stroke="white" stroke-width="1.5" opacity="0.15"/>
                     <polygon points="500,-200 1200,1200 -200,1200" fill="none" stroke="white" stroke-width="1.2" opacity="0.2"/>
-                    <polygon points="50,350 500,-400 950,350" fill="none" stroke="white" stroke-width="1" opacity="0.15"/>
-                    <polygon points="-400,1400 50,350 500,1400" fill="none" stroke="white" stroke-width="1" opacity="0.15"/>
-                    <polygon points="500,1400 950,350 1400,1400" fill="none" stroke="white" stroke-width="1" opacity="0.15"/>
                 </svg>
             </div>
-
-            <!-- 第2层：六边形蜂窝网格，50秒逆时针旋转一圈 -->
             <div class="fractal-layer layer-2">
                 <svg viewBox="-500 -500 2000 2000">
                     <polygon points="500,0 700,125 700,375 500,500 300,375 300,125" fill="none" stroke="white" stroke-width="1.5" opacity="0.25"/>
-                    <polygon points="500,-250 700,-125 700,125 500,250 300,125 300,-125" fill="none" stroke="white" stroke-width="1.2" opacity="0.18"/>
-                    <polygon points="850,0 1050,125 1050,375 850,500 650,375 650,125" fill="none" stroke="white" stroke-width="1.2" opacity="0.18"/>
-                    <polygon points="850,500 1050,625 1050,875 850,1000 650,875 650,625" fill="none" stroke="white" stroke-width="1.2" opacity="0.18"/>
-                    <polygon points="500,750 700,875 700,1125 500,1250 300,1125 300,875" fill="none" stroke="white" stroke-width="1.2" opacity="0.18"/>
-                    <polygon points="150,500 350,625 350,875 150,1000 -50,875 -50,625" fill="none" stroke="white" stroke-width="1.2" opacity="0.18"/>
                     <polygon points="150,0 350,125 350,375 150,500 -50,375 -50,125" fill="none" stroke="white" stroke-width="1.2" opacity="0.18"/>
                 </svg>
             </div>
-
-            <!-- 第3层：同心圆，30秒呼吸缩放一次 -->
             <div class="fractal-layer layer-3">
                 <svg viewBox="-500 -500 2000 2000">
-                    <circle cx="500" cy="500" r="800" fill="none" stroke="white" stroke-width="1" opacity="0.1"/>
                     <circle cx="500" cy="500" r="700" fill="none" stroke="white" stroke-width="1.2" opacity="0.15"/>
-                    <circle cx="500" cy="500" r="600" fill="none" stroke="white" stroke-width="1" opacity="0.12"/>
                     <circle cx="500" cy="500" r="500" fill="none" stroke="white" stroke-width="1.5" opacity="0.18"/>
-                    <circle cx="500" cy="500" r="400" fill="none" stroke="white" stroke-width="1" opacity="0.1"/>
-                    <circle cx="500" cy="500" r="300" fill="none" stroke="white" stroke-width="1.2" opacity="0.15"/>
                 </svg>
             </div>
-
-            <!-- 第4层：方形网格，60秒顺时针旋转一圈（带缩放） -->
             <div class="fractal-layer layer-4">
                 <svg viewBox="-500 -500 2000 2000">
                     <rect x="-100" y="-100" width="1200" height="1200" fill="none" stroke="white" stroke-width="1.5" opacity="0.15" transform="rotate(0 500 500)"/>
-                    <rect x="0" y="0" width="1000" height="1000" fill="none" stroke="white" stroke-width="1.2" opacity="0.18" transform="rotate(15 500 500)"/>
                     <rect x="100" y="100" width="800" height="800" fill="none" stroke="white" stroke-width="1" opacity="0.2" transform="rotate(30 500 500)"/>
-                    <rect x="200" y="200" width="600" height="600" fill="none" stroke="white" stroke-width="1.2" opacity="0.15" transform="rotate(45 500 500)"/>
                 </svg>
             </div>
-
-            <!-- 第5层：16条放射线，70秒逆时针旋转一圈 -->
             <div class="fractal-layer layer-5">
                 <svg viewBox="-500 -500 2000 2000">
                     <line x1="500" y1="500" x2="500" y2="-500" stroke="white" stroke-width="1" opacity="0.1"/>
-                    <line x1="500" y1="500" x2="1207" y2="-207" stroke="white" stroke-width="1" opacity="0.1"/>
                     <line x1="500" y1="500" x2="1500" y2="500" stroke="white" stroke-width="1" opacity="0.1"/>
-                    <line x1="500" y1="500" x2="1207" y2="1207" stroke="white" stroke-width="1" opacity="0.1"/>
                     <line x1="500" y1="500" x2="500" y2="1500" stroke="white" stroke-width="1" opacity="0.1"/>
-                    <line x1="500" y1="500" x2="-207" y2="1207" stroke="white" stroke-width="1" opacity="0.1"/>
                     <line x1="500" y1="500" x2="-500" y2="500" stroke="white" stroke-width="1" opacity="0.1"/>
-                    <line x1="500" y1="500" x2="-207" y2="-207" stroke="white" stroke-width="1" opacity="0.1"/>
-                    <line x1="500" y1="500" x2="854" y2="-354" stroke="white" stroke-width="0.8" opacity="0.08"/>
-                    <line x1="500" y1="500" x2="1354" y2="146" stroke="white" stroke-width="0.8" opacity="0.08"/>
-                    <line x1="500" y1="500" x2="1354" y2="854" stroke="white" stroke-width="0.8" opacity="0.08"/>
-                    <line x1="500" y1="500" x2="854" y2="1354" stroke="white" stroke-width="0.8" opacity="0.08"/>
-                    <line x1="500" y1="500" x2="146" y2="1354" stroke="white" stroke-width="0.8" opacity="0.08"/>
-                    <line x1="500" y1="500" x2="-354" y2="854" stroke="white" stroke-width="0.8" opacity="0.08"/>
-                    <line x1="500" y1="500" x2="-354" y2="146" stroke="white" stroke-width="0.8" opacity="0.08"/>
-                    <line x1="500" y1="500" x2="146" y2="-354" stroke="white" stroke-width="0.8" opacity="0.08"/>
                 </svg>
             </div>
         </div>
 
-        <!--
-            ============================================================
-            登录卡片（白色浮层，z-index:10 盖在分形背景上面）
-            包含：Logo、用户名输入框、登录按钮
-            ============================================================
-        -->
-        <div class="login-card">
-            <!-- Logo 区域：CRED 文字 + 双矩形重叠图标 -->
+        <!-- 登录卡片 -->
+        <div class="login-card" id="loginCard">
             <div class="logo-section">
                 <div class="logo-text">CRED</div>
                 <svg class="logo-icon" viewBox="0 0 40 40">
@@ -258,55 +358,142 @@
                     <text x="20" y="24" font-size="14" font-weight="bold" fill="black" text-anchor="middle">C</text>
                 </svg>
             </div>
-
-            <!--
-                用户名输入框
-                id="username"       — JS 用这个 id 获取输入值
-                oninput             — 每次输入触发 checkInput()，检测是否为空
-            -->
             <input type="text" placeholder="Username" id="username" oninput="checkInput()">
-
-            <!--
-                登录按钮
-                id="login-btn"      — JS 用这个 id 控制 disabled 状态
-                disabled            — 默认禁用，输入框有内容才启用
-                onclick="sendLogin()" — 点击时把用户名发给 Godot
-                【注意】type 应改为 "button" 避免在 form 中触发页面刷新
-            -->
-            <button type="submit" id="login-btn" name="action" value="login" disabled onclick="sendLogin()">登录</button>
+            <button type="button" class="main-btn" id="login-btn" disabled onclick="sendLogin()">login</button>
         </div>
 
-        <!--
-            ============================================================
-            JS 逻辑区
-            ============================================================
-        -->
-        <script>
-        /**
-         * checkInput()
-         * 作用：检测用户名输入框是否有内容
-         *       空 → 登录按钮 disabled（灰色不可点）
-         *       非空 → 登录按钮 enabled（可点击）
-         * 触发：输入框 oninput 事件（每次按键/粘贴都会触发）
-         */
-        function checkInput() {
-            var username = document.getElementById("username").value.trim();  // 取输入值，去首尾空格
-            document.getElementById("login-btn").disabled = (username === ""); // 空字符串 → disabled=true
-        }
+        <!-- 设置触发图标 -->
+        <div class="settings-trigger" onclick="toggleSettings(true)" title="设置">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+        </div>
 
-        /**
-         * sendLogin()
-         * 作用：把用户名通过 IPC 发送给 Godot
-         * 格式：login:用户名
-         * Godot 端接收方式：
-         *   if message.begins_with("login:"):
-         *       Global.username = message.substr(6)
-         * 触发：登录按钮 onclick 事件
-         */
-        function sendLogin() {
-            var username = document.getElementById("username").value.trim();
-            window.ipc.postMessage("login:" + username);  // 发 IPC："login:玩家输入的用户名"
-        }
+        <!-- 设置菜单遮罩 -->
+        <div class="settings-overlay" id="settingsOverlay">
+            <div class="settings-container">
+                
+                <!-- 主设置菜单 -->
+                <div class="menu-view active" id="mainMenu">
+                    <div class="settings-title">SETTINGS</div>
+                    <button class="menu-item" onclick="handleMenuAction('continue')">Continue</button>
+                    <button class="menu-item" onclick="handleMenuAction('new_game')">New Game</button>
+                    <button class="menu-item" onclick="handleMenuAction('language')">Language</button>
+                    <button class="menu-item" onclick="showSubPage('audioMenu')">Audio</button>
+                    <button class="menu-item" onclick="handleMenuAction('save_quit')">Save & Quit</button>
+                    <button class="menu-item danger" onclick="handleMenuAction('quit'); window.ipc.postMessage('quit_game')">Quit</button>
+                    <button class="close-link" onclick="toggleSettings(false)"></button>
+                </div>
+
+                <!-- 音频设置菜单 -->
+                <div class="menu-view" id="audioMenu">
+                    <div class="settings-title">AUDIO</div>
+                    
+                    <div class="audio-controls">
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <span>Music</span>
+                                <span id="musicVal">80%</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="80" oninput="handleVolumeChange('music', this.value)">
+                        </div>
+                        
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <span>Sound Effects</span>
+                                <span id="sfxVal">100%</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="100" oninput="handleVolumeChange('sfx', this.value)">
+                        </div>
+                    </div>
+
+                    <button class="menu-item back-btn" onclick="showSubPage('mainMenu')">Back</button>
+                </div>
+
+            </div>
+        </div>
+
+        <script>
+            function checkInput() {
+                var username = document.getElementById("username").value.trim();
+                document.getElementById("login-btn").disabled = (username === "");
+            }
+
+            function sendLogin() {
+                var username = document.getElementById("username").value.trim();
+                if(window.ipc) {
+                    window.ipc.postMessage("login:" + username);
+                } else {
+                    console.log("Godot IPC 暂未连接，用户名:", username);
+                }
+            }
+
+            /**
+             * 切换设置叠加层显示
+             */
+            function toggleSettings(show) {
+                const overlay = document.getElementById('settingsOverlay');
+                const card = document.getElementById('loginCard');
+                
+                if (show) {
+                    overlay.classList.add('active');
+                    card.style.transform = "scale(0.95)";
+                    card.style.filter = "blur(10px)";
+                    card.style.opacity = "0.5";
+                } else {
+                    overlay.classList.remove('active');
+                    // 重置菜单回到主页面
+                    setTimeout(() => showSubPage('mainMenu'), 300);
+                    card.style.transform = "scale(1)";
+                    card.style.filter = "none";
+                    card.style.opacity = "1";
+                }
+            }
+
+            /**
+             * 切换二级子菜单
+             * @param {string} pageId - 目标菜单的 ID
+             */
+            function showSubPage(pageId) {
+                const views = document.querySelectorAll('.menu-view');
+                views.forEach(v => v.classList.remove('active'));
+                document.getElementById(pageId).classList.add('active');
+            }
+
+            /**
+             * 处理常规动作
+             */
+            function handleMenuAction(action) {
+                console.log("设置动作:", action);
+                if (action === 'continue') toggleSettings(false);
+                
+                if(window.ipc) {
+                    window.ipc.postMessage("settings:" + action);
+                }
+
+                if (action === 'quit' || action === 'save_quit') {
+                    document.body.style.opacity = '0';
+                    document.body.style.transition = 'opacity 0.5s';
+                }
+            }
+
+            /**
+             * 处理音量调节
+             */
+            function handleVolumeChange(type, value) {
+                const displayId = type === 'music' ? 'musicVal' : 'sfxVal';
+                document.getElementById(displayId).innerText = value + '%';
+                
+                if(window.ipc) {
+                    window.ipc.postMessage("volume:" + type + ":" + value);
+                }
+            }
+
+            // 快捷键 ESC 关闭设置
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') toggleSettings(false);
+            });
         </script>
     </div>
 </body>

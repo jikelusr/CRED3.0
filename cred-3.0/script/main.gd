@@ -17,6 +17,10 @@ func _on_ipc(message: String):
 	match message:
 		"start":
 			web_view.load_url("res://html/test.html")
+			
+		"quit_game":
+			get_tree().quit()
+			print("qiut_apple")
 		
 		"go_to_next_scene":
 			web_view.load_url("res://html/window.html")
