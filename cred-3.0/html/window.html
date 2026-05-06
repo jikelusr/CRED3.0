@@ -508,6 +508,14 @@
             sidebar.querySelectorAll('.dash-nav-item').forEach(t => t.classList.remove('active')); contents.forEach(c => c.classList.remove('active'));
             tab.classList.add('active'); const target = tab.getAttribute('data-tab'); if(target) document.getElementById(target).classList.add('active');
         }); });
+        // 放在 C2.html 或 window.html 的 <script> 中
+        window.restoreCheckpoint = function(checkpoint) {
+            if (checkpoint === "c2_desktop_post_notice") {
+        // 直接显示紧急通知
+                document.getElementById('emergent-overlay').style.display = 'flex';
+            }
+    // 可根据需要扩展更多状态
+        };
     </script>
 </body>
 </html>

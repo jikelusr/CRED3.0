@@ -429,9 +429,6 @@
                 }
             }
 
-            /**
-             * 切换设置叠加层显示
-             */
             function toggleSettings(show) {
                 const overlay = document.getElementById('settingsOverlay');
                 const card = document.getElementById('loginCard');
@@ -443,7 +440,6 @@
                     card.style.opacity = "0.5";
                 } else {
                     overlay.classList.remove('active');
-                    // 重置菜单回到主页面
                     setTimeout(() => showSubPage('mainMenu'), 300);
                     card.style.transform = "scale(1)";
                     card.style.filter = "none";
@@ -451,19 +447,13 @@
                 }
             }
 
-            /**
-             * 切换二级子菜单
-             * @param {string} pageId - 目标菜单的 ID
-             */
             function showSubPage(pageId) {
                 const views = document.querySelectorAll('.menu-view');
                 views.forEach(v => v.classList.remove('active'));
                 document.getElementById(pageId).classList.add('active');
             }
 
-            /**
-             * 处理常规动作
-             */
+    // ✅ 只保留这一个完整的版本
             function handleMenuAction(action) {
                 console.log("设置动作:", action);
                 if (action === 'continue') toggleSettings(false);
@@ -478,9 +468,6 @@
                 }
             }
 
-            /**
-             * 处理音量调节
-             */
             function handleVolumeChange(type, value) {
                 const displayId = type === 'music' ? 'musicVal' : 'sfxVal';
                 document.getElementById(displayId).innerText = value + '%';
@@ -490,10 +477,12 @@
                 }
             }
 
-            // 快捷键 ESC 关闭设置
+    // 快捷键 ESC 关闭设置
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') toggleSettings(false);
             });
+            
+    // ❌ 这里不应该再有第二个 handleMenuAction
         </script>
     </div>
 </body>
